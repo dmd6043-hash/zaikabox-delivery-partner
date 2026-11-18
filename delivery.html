@@ -1,0 +1,426 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#100d0a">
+<meta name="description" content="ZaikaBox Delivery Partner App">
+<link rel="manifest" href="./manifest.webmanifest">
+<title>ZaikaBox Delivery</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  padding:18px;
+  background:#100d0a;
+  color:#fff;
+  font-family:Arial,sans-serif;
+}
+header{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin:8px 0 24px;
+}
+.logo{
+  width:48px;height:48px;
+  border-radius:15px;
+  background:#ff8a35;
+  color:#160d08;
+  display:grid;
+  place-items:center;
+  font-size:25px;
+  font-weight:bold;
+}
+h1{font-size:23px;margin:0}
+.sub{color:#aaa;font-size:13px;margin-top:5px}
+.card{
+  background:#1c1814;
+  border:1px solid #34291f;
+  border-radius:18px;
+  padding:18px;
+  margin-bottom:15px;
+}
+h2{font-size:18px;margin:0 0 15px}
+input{
+  width:100%;
+  padding:15px;
+  margin:7px 0;
+  border:1px solid #44372b;
+  border-radius:12px;
+  background:#100d0a;
+  color:white;
+  font-size:15px;
+  outline:none;
+}
+button{
+  border:0;
+  border-radius:12px;
+  padding:14px;
+  width:100%;
+  background:#ff8a35;
+  color:#170d06;
+  font-weight:bold;
+  font-size:15px;
+  margin-top:10px;
+  cursor:pointer;
+}
+button.secondary{
+  background:#33271d;
+  color:white;
+}
+button:disabled{opacity:.5}
+.hidden{display:none!important}
+.muted{color:#aaa;font-size:13px}
+.status{
+  display:inline-block;
+  padding:7px 11px;
+  background:#33271d;
+  color:#ffb16f;
+  border-radius:20px;
+  font-size:12px;
+  margin:5px 0 12px;
+}
+.order-title{
+  font-size:17px;
+  font-weight:bold;
+  margin-bottom:8px;
+}
+.info{
+  color:#ddd;
+  font-size:14px;
+  line-height:1.7;
+  overflow-wrap:anywhere;
+}
+.order-actions{margin-top:12px}
+#message{
+  color:#ffb16f;
+  font-size:13px;
+  margin-top:12px;
+  line-height:1.5;
+}
+.toprow{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+}
+.toprow button{
+  width:auto;
+  margin:0;
+  padding:10px 13px;
+  font-size:12px;
+}
+.empty{text-align:center;padding:25px 10px}
+footer{
+  text-align:center;
+  color:#777;
+  font-size:12px;
+  padding:20px 0;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="logo">Z</div>
+  <div>
+    <h1>ZaikaBox Delivery</h1>
+    <div class="sub">Delivery Partner App</div>
+  </div>
+</header>
+
+<section id="loginSection" class="card">
+  <h2>Delivery Partner Login</h2>
+  <p class="muted">Login using your registered delivery account.</p>
+  <input id="email" type="email" placeholder="Email address" autocomplete="username">
+  <input id="password" type="password" placeholder="Password" autocomplete="current-password">
+  <button id="loginBtn" onclick="login()">Login</button>
+  <div id="loginMessage"></div>
+</section>
+
+<section id="dashboard" class="hidden">
+  <div class="card">
+    <div class="toprow">
+      <div>
+        <h2 style="margin-bottom:5px">My Deliveries</h2>
+        <div class="muted" id="partnerEmail"></div>
+      </div>
+      <button class="secondary" onclick="logout()">Logout</button>
+    </div>
+  </div>
+
+  <div id="orders">
+    <div class="card empty">
+      <div>Loading assigned orders...</div>
+    </div>
+  </div>
+</section>
+
+<div id="message"></div>
+<footer>ZaikaBox · Har Craving Ka Apna Box!</footer>
+
+<script type="module">
+import {initializeApp}
+from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+
+import {
+ getAuth,
+ signInWithEmailAndPassword,
+ onAuthStateChanged,
+ signOut
+} from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+
+import {
+ getFirestore,
+ doc,
+ getDoc,
+ collection,
+ query,
+ where,
+ onSnapshot,
+ updateDoc
+} from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+
+const firebaseConfig={
+ apiKey:"AIzaSyCiG0M2iO59aJGUge5SokM8nHkC8k4SByE",
+ authDomain:"snap-kitchen-b8a73.firebaseapp.com",
+ projectId:"snap-kitchen-b8a73",
+ storageBucket:"snap-kitchen-b8a73.firebasestorage.app",
+ messagingSenderId:"1060475241392",
+ appId:"1:1060475241392:web:c3751859ecb085830b8c75",
+ measurementId:"G-KRFFRFJY5X"
+};
+
+const app=initializeApp(firebaseConfig,"ZaikaBoxDeliveryApp");
+const auth=getAuth(app);
+const db=getFirestore(app);
+
+let unsubscribeOrders=null;
+let currentUser=null;
+let currentOrders=[];
+
+const loginSection=document.getElementById("loginSection");
+const dashboard=document.getElementById("dashboard");
+const ordersBox=document.getElementById("orders");
+
+function showMessage(text){
+ document.getElementById("message").textContent=text;
+}
+
+function escapeHTML(value){
+ return String(value ?? "").replace(/[&<>"']/g,char=>({
+  "&":"&amp;",
+  "<":"&lt;",
+  ">":"&gt;",
+  '"':"&quot;",
+  "'":"&#39;"
+ })[char]);
+}
+
+window.login=async function(){
+ const email=document.getElementById("email").value.trim();
+ const password=document.getElementById("password").value;
+ const msg=document.getElementById("loginMessage");
+ const btn=document.getElementById("loginBtn");
+
+ if(!email || !password){
+  msg.textContent="Email aur password dono bhariye.";
+  return;
+ }
+
+ btn.disabled=true;
+ msg.textContent="Logging in...";
+
+ try{
+  await signInWithEmailAndPassword(auth,email,password);
+  msg.textContent="";
+ }catch(error){
+  msg.textContent="Login failed: "+error.message;
+  btn.disabled=false;
+ }
+};
+
+window.logout=async function(){
+ try{
+  if(unsubscribeOrders) unsubscribeOrders();
+  await signOut(auth);
+ }catch(error){
+  showMessage(error.message);
+ }
+};
+
+onAuthStateChanged(auth,async user=>{
+ if(unsubscribeOrders){
+  unsubscribeOrders();
+  unsubscribeOrders=null;
+ }
+
+ if(!user){
+  currentUser=null;
+  loginSection.classList.remove("hidden");
+  dashboard.classList.add("hidden");
+  document.getElementById("loginBtn").disabled=false;
+  return;
+ }
+
+ try{
+  const accountRef=doc(db,"accounts",user.uid);
+  const accountSnap=await getDoc(accountRef);
+
+  if(!accountSnap.exists()){
+   await signOut(auth);
+   document.getElementById("loginMessage").textContent=
+    "Delivery account nahi mila. Admin se contact karein.";
+   return;
+  }
+
+  const account=accountSnap.data();
+  const role=String(account.role||"").toLowerCase();
+
+  if(role!=="delivery" || account.active!==true){
+   await signOut(auth);
+   document.getElementById("loginMessage").textContent=
+    "Delivery account inactive hai ya role sahi nahi hai.";
+   return;
+  }
+
+  currentUser=user;
+  loginSection.classList.add("hidden");
+  dashboard.classList.remove("hidden");
+  document.getElementById("partnerEmail").textContent=user.email||"Delivery Partner";
+
+  loadOrders(user.uid);
+
+ }catch(error){
+  showMessage("Account check error: "+error.message);
+ }
+});
+
+function loadOrders(uid){
+ const q=query(
+  collection(db,"orders"),
+  where("assignedTo","==",uid)
+ );
+
+ unsubscribeOrders=onSnapshot(q,snapshot=>{
+  currentOrders=snapshot.docs.map(item=>({
+   id:item.id,
+   ...item.data()
+  }));
+
+  currentOrders.sort((a,b)=>{
+   const aTime=a.createdAt?.toMillis?.()||0;
+   const bTime=b.createdAt?.toMillis?.()||0;
+   return bTime-aTime;
+  });
+
+  renderOrders();
+ },error=>{
+  ordersBox.innerHTML=`
+   <div class="card">
+    <div style="color:#ff8a35;font-weight:bold">Orders load nahi hue</div>
+    <p class="muted">${escapeHTML(error.message)}</p>
+   </div>`;
+ });
+}
+
+function renderOrders(){
+ if(currentOrders.length===0){
+  ordersBox.innerHTML=`
+   <div class="card empty">
+    <div style="font-size:35px">🛵</div>
+    <h2>Koi Assigned Order Nahi</h2>
+    <p class="muted">Admin jab order assign karega, yahan dikh jayega.</p>
+   </div>`;
+  return;
+ }
+
+ ordersBox.innerHTML=currentOrders.map(order=>{
+  const status=String(order.status||"Pending");
+  const name=order.customerName||order.name||order.userName||"Customer";
+  const phone=order.phone||order.customerPhone||"";
+  const address=order.deliveryAddress||order.address||order.customerAddress||"Address not available";
+  const total=order.totalAmount??order.total??order.grandTotal??"";
+  const isDelivered=status.toLowerCase()==="delivered";
+  const isOut=status.toLowerCase()==="out for delivery";
+
+  const phoneLink=String(phone).replace(/[^\d+]/g,"");
+  const mapLink="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(address);
+
+  return `
+   <div class="card">
+    <div class="toprow">
+     <div class="order-title">Order #${escapeHTML(order.id.slice(-6).toUpperCase())}</div>
+     <span class="status">${escapeHTML(status)}</span>
+    </div>
+
+    <div class="info">
+     <b>Customer:</b> ${escapeHTML(name)}<br>
+     <b>Phone:</b> ${escapeHTML(phone||"Not available")}<br>
+     <b>Address:</b> ${escapeHTML(address)}<br>
+     ${total!==""?`<b>Order Total:</b> ₹${escapeHTML(total)}<br>`:""}
+     ${order.paymentMethod?`<b>Payment:</b> ${escapeHTML(order.paymentMethod)}<br>`:""}
+    </div>
+
+    <div class="order-actions">
+     ${phoneLink?`<button class="secondary" onclick="callCustomer('${escapeHTML(phoneLink)}')">📞 Call Customer</button>`:""}
+     <button class="secondary" onclick="openMap('${encodeURIComponent(address)}')">📍 Open Google Maps</button>
+
+     ${
+      isDelivered
+      ? `<button disabled>✓ Delivered</button>`
+      : isOut
+       ? `<button onclick="updateStatus('${order.id}','Delivered')">MARK DELIVERED</button>`
+       : `<button onclick="updateStatus('${order.id}','Out for Delivery')">START DELIVERY</button>`
+     }
+    </div>
+   </div>
+  `;
+ }).join("");
+}
+
+window.callCustomer=function(phone){
+ window.location.href="tel:"+phone;
+};
+
+window.openMap=function(encodedAddress){
+ window.open(
+  "https://www.google.com/maps/search/?api=1&query="+encodedAddress,
+  "_blank"
+ );
+};
+
+window.updateStatus=async function(orderId,newStatus){
+ if(!currentUser)return;
+
+ const order=currentOrders.find(item=>item.id===orderId);
+ if(!order)return;
+
+ if(order.assignedTo!==currentUser.uid){
+  showMessage("Ye order aapko assign nahi hua hai.");
+  return;
+ }
+
+ try{
+  await updateDoc(doc(db,"orders",orderId),{
+   status:newStatus
+  });
+
+  showMessage(
+   newStatus==="Delivered"
+   ?"Order delivered successfully!"
+   :"Delivery started successfully!"
+  );
+
+ }catch(error){
+  showMessage("Status update failed: "+error.message);
+ }
+};
+</script>
+
+</body>
+</html>
