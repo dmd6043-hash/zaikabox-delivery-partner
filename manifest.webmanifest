@@ -1,0 +1,25 @@
+
+{
+  "id": "./delivery-app",
+  "name": "ZaikaBox Delivery Partner",
+  "short_name": "Zaika Delivery",
+  "description": "ZaikaBox Delivery Partner App",
+  "start_url": "./delivery.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#100d0a",
+  "theme_color": "#100d0a",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
