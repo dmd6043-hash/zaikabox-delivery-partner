@@ -153,6 +153,14 @@ footer{
     </div>
   </div>
 
+  <div class="card">
+    <h2>Delivery Availability</h2>
+    <div class="status" id="availabilityStatus">OFFLINE</div>
+    <p class="muted" id="gpsStatus">Online hone par GPS permission maangi jayegi.</p>
+    <button id="onlineBtn" onclick="goOnline()">GO ONLINE</button>
+    <button id="offlineBtn" class="secondary" onclick="goOffline()" disabled>GO OFFLINE</button>
+  </div>
+
   <div id="orders">
     <div class="card empty">
       <div>Loading assigned orders...</div>
@@ -177,6 +185,8 @@ import {
 import {
  getFirestore,
  doc,
+ setDoc,
+ serverTimestamp,
  getDoc,
  collection,
  query,
@@ -202,6 +212,9 @@ const db=getFirestore(app);
 let unsubscribeOrders=null;
 let currentUser=null;
 let currentOrders=[];
+let availabilityWatchId=null;
+let isOnline=false;
+let availabilityBusy=false;
 
 const loginSection=document.getElementById("loginSection");
 const dashboard=document.getElementById("dashboard");
@@ -247,6 +260,7 @@ window.login=async function(){
 window.logout=async function(){
  try{
   if(unsubscribeOrders) unsubscribeOrders();
+  stopAvailabilityWatch();
   await signOut(auth);
  }catch(error){
   showMessage(error.message);
@@ -261,6 +275,8 @@ onAuthStateChanged(auth,async user=>{
 
  if(!user){
   currentUser=null;
+  stopAvailabilityWatch();
+  isOnline=false;
   loginSection.classList.remove("hidden");
   dashboard.classList.add("hidden");
   document.getElementById("loginBtn").disabled=false;
@@ -294,11 +310,122 @@ onAuthStateChanged(auth,async user=>{
   document.getElementById("partnerEmail").textContent=user.email||"Delivery Partner";
 
   loadOrders(user.uid);
+  checkAvailability(user.uid);
 
  }catch(error){
   showMessage("Account check error: "+error.message);
  }
 });
+
+function setAvailabilityUI(online,message){
+ isOnline=online;
+ document.getElementById("availabilityStatus").textContent=online?"ONLINE":"OFFLINE";
+ document.getElementById("onlineBtn").disabled=online||availabilityBusy;
+ document.getElementById("offlineBtn").disabled=!online||availabilityBusy;
+ if(message)document.getElementById("gpsStatus").textContent=message;
+}
+
+async function checkAvailability(uid){
+ try{
+  const snap=await getDoc(doc(db,"deliveryAvailability",uid));
+  if(snap.exists() && snap.data().isOnline===true){
+   setAvailabilityUI(true,"Account online status saved. GPS tracking active while this page is open.");
+   startAvailabilityWatch();
+  }else{
+   setAvailabilityUI(false,"Aap offline hain. Online hone ke liye GO ONLINE dabayein.");
+  }
+ }catch(error){
+  setAvailabilityUI(false,"Availability check: "+(error.code||"")+" "+error.message);
+ }
+}
+
+function getCurrentPosition(){
+ return new Promise((resolve,reject)=>{
+  if(!navigator.geolocation){reject(new Error("Is device/browser mein GPS available nahi hai."));return;}
+  navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:true,timeout:20000,maximumAge:0});
+ });
+}
+
+async function saveAvailabilityPosition(position){
+ if(!currentUser||!isOnline)return;
+ const c=position.coords;
+ await setDoc(doc(db,"deliveryAvailability",currentUser.uid),{
+  deliveryPartnerId:currentUser.uid,
+  isOnline:true,
+  latitude:c.latitude,
+  longitude:c.longitude,
+  accuracy:c.accuracy,
+  updatedAt:serverTimestamp()
+ },{merge:true});
+ document.getElementById("gpsStatus").textContent="GPS active · Accuracy "+Math.round(c.accuracy)+" m · Location updated.";
+}
+
+function startAvailabilityWatch(){
+ if(!navigator.geolocation||!currentUser||availabilityWatchId!==null)return;
+ availabilityWatchId=navigator.geolocation.watchPosition(async position=>{
+  try{await saveAvailabilityPosition(position);}
+  catch(error){showMessage("GPS save error: "+(error.code||"")+" - "+error.message);}
+ },error=>{
+  document.getElementById("gpsStatus").textContent="GPS error: "+error.message+" (Location permission aur device GPS check karein.)";
+ },{enableHighAccuracy:true,maximumAge:5000,timeout:20000});
+}
+
+function stopAvailabilityWatch(){
+ if(availabilityWatchId!==null&&navigator.geolocation){
+  navigator.geolocation.clearWatch(availabilityWatchId);
+ }
+ availabilityWatchId=null;
+}
+
+window.goOnline=async function(){
+ if(!currentUser||availabilityBusy)return;
+ availabilityBusy=true;
+ setAvailabilityUI(false,"GPS permission aur current location check ho rahi hai...");
+ try{
+  const position=await getCurrentPosition();
+  const c=position.coords;
+  await setDoc(doc(db,"deliveryAvailability",currentUser.uid),{
+   deliveryPartnerId:currentUser.uid,
+   isOnline:true,
+   latitude:c.latitude,
+   longitude:c.longitude,
+   accuracy:c.accuracy,
+   updatedAt:serverTimestamp()
+  },{merge:true});
+  isOnline=true;
+  setAvailabilityUI(true,"You are online. GPS location share ho rahi hai.");
+  startAvailabilityWatch();
+ }catch(error){
+  setAvailabilityUI(false,"Online nahi ho paya: "+(error.code||"")+" - "+error.message);
+  showMessage("GO ONLINE ERROR: "+(error.code||"")+" - "+error.message);
+ }finally{
+  availabilityBusy=false;
+  document.getElementById("onlineBtn").disabled=isOnline;
+  document.getElementById("offlineBtn").disabled=!isOnline;
+ }
+};
+
+window.goOffline=async function(){
+ if(!currentUser||availabilityBusy)return;
+ availabilityBusy=true;
+ document.getElementById("offlineBtn").disabled=true;
+ try{
+  stopAvailabilityWatch();
+  await setDoc(doc(db,"deliveryAvailability",currentUser.uid),{
+   deliveryPartnerId:currentUser.uid,
+   isOnline:false,
+   updatedAt:serverTimestamp()
+  },{merge:true});
+  setAvailabilityUI(false,"You are offline. GPS sharing stopped.");
+ }catch(error){
+  showMessage("GO OFFLINE ERROR: "+(error.code||"")+" - "+error.message);
+  startAvailabilityWatch();
+ }finally{
+  availabilityBusy=false;
+  document.getElementById("onlineBtn").disabled=isOnline;
+  document.getElementById("offlineBtn").disabled=!isOnline;
+ }
+};
 
 function loadOrders(uid){
  const q=query(
