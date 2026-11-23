@@ -485,8 +485,11 @@ function renderOrders(){
   const phone=order.phone||order.customerPhone||"";
   const address=order.deliveryAddress||order.address||order.customerAddress||"Address not available";
   const total=order.totalAmount??order.total??order.grandTotal??"";
-  const isDelivered=status.toLowerCase()==="delivered";
-  const isOut=status.toLowerCase()==="out for delivery";
+  const normalizedStatus=status.toLowerCase();
+  const isDelivered=normalizedStatus==="delivered";
+  const isOut=normalizedStatus==="out for delivery";
+  const isReady=normalizedStatus==="ready";
+  const isNotReady=normalizedStatus==="not ready";
 
   const phoneLink=String(phone).replace(/[^\d+]/g,"");
   const mapLink="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(address);
@@ -515,7 +518,11 @@ function renderOrders(){
       ? `<button disabled>✓ Delivered</button>`
       : isOut
        ? `<button onclick="updateStatus('${order.id}','Delivered')">MARK DELIVERED</button>`
-       : `<button onclick="updateStatus('${order.id}','Out for Delivery')">START DELIVERY</button>`
+       : isReady
+        ? `<button class="secondary" onclick="updateStatus('${order.id}','Not Ready')">ORDER NOT READY</button><button onclick="updateStatus('${order.id}','Out for Delivery')">START DELIVERY</button>`
+        : isNotReady
+         ? `<button disabled>WAITING FOR RESTAURANT</button>`
+         : `<button onclick="updateStatus('${order.id}','Out for Delivery')">START DELIVERY</button>`
      }
     </div>
    </div>
@@ -544,10 +551,25 @@ window.updateStatus=async function(orderId,newStatus){
   showMessage("Ye order aapko assign nahi hua hai.");
   return;
  }
+  const currentStatus=String(order.status||"").toLowerCase();
+  if(newStatus==="Not Ready"&&currentStatus!=="ready"){
+   showMessage("You can report an order as not ready only after the restaurant marks it READY.");
+   return;
+  }
+  if(newStatus==="Out for Delivery"&&currentStatus==="not ready"){
+   showMessage("Please wait until the restaurant marks this order READY again.");
+   return;
+  }
 
  try{
-  await updateDoc(doc(db,"orders",orderId),{
-   status:newStatus
+   const update={status:newStatus,updatedAt:serverTimestamp()};
+   if(newStatus==="Not Ready"){update.notReadyAt=serverTimestamp();update.notReadyBy=currentUser.uid;update.readyConfirmedByRestaurant=false;}
+   if(newStatus==="Out for Delivery")update.deliveryStartedAt=serverTimestamp();
+    newStatus==="Delivered"
+    ?"Order delivered successfully!"
+    :newStatus==="Not Ready"
+     ?"Not-ready report sent to the restaurant. Please wait for the next READY alert."
+     :"Delivery started successfully!"
   });
 
   showMessage(
