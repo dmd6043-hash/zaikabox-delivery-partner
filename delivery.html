@@ -543,41 +543,38 @@ window.openMap=function(encodedAddress){
 
 window.updateStatus=async function(orderId,newStatus){
  if(!currentUser)return;
-
  const order=currentOrders.find(item=>item.id===orderId);
  if(!order)return;
-
  if(order.assignedTo!==currentUser.uid){
-  showMessage("Ye order aapko assign nahi hua hai.");
+  showMessage("This order is not assigned to you.");
   return;
  }
-  const currentStatus=String(order.status||"").toLowerCase();
-  if(newStatus==="Not Ready"&&currentStatus!=="ready"){
-   showMessage("You can report an order as not ready only after the restaurant marks it READY.");
-   return;
-  }
-  if(newStatus==="Out for Delivery"&&currentStatus==="not ready"){
-   showMessage("Please wait until the restaurant marks this order READY again.");
-   return;
-  }
-
+ const currentStatus=String(order.status||"").toLowerCase();
+ if(newStatus==="Not Ready"&&currentStatus!=="ready"){
+  showMessage("You can report an order as not ready only after the restaurant marks it READY.");
+  return;
+ }
+ if(newStatus==="Out for Delivery"&&currentStatus==="not ready"){
+  showMessage("Please wait until the restaurant marks this order READY again.");
+  return;
+ }
  try{
-   const update={status:newStatus,updatedAt:serverTimestamp()};
-   if(newStatus==="Not Ready"){update.notReadyAt=serverTimestamp();update.notReadyBy=currentUser.uid;update.readyConfirmedByRestaurant=false;}
-   if(newStatus==="Out for Delivery")update.deliveryStartedAt=serverTimestamp();
-    newStatus==="Delivered"
-    ?"Order delivered successfully!"
-    :newStatus==="Not Ready"
-     ?"Not-ready report sent to the restaurant. Please wait for the next READY alert."
-     :"Delivery started successfully!"
-  });
-
+  const update={status:newStatus,updatedAt:serverTimestamp()};
+  if(newStatus==="Not Ready"){
+   update.notReadyAt=serverTimestamp();
+   update.notReadyBy=currentUser.uid;
+   update.readyConfirmedByRestaurant=false;
+  }
+  if(newStatus==="Out for Delivery")update.deliveryStartedAt=serverTimestamp();
+  if(newStatus==="Delivered")update.deliveredAt=serverTimestamp();
+  await updateDoc(doc(db,"orders",orderId),update);
   showMessage(
    newStatus==="Delivered"
    ?"Order delivered successfully!"
-   :"Delivery started successfully!"
+   :newStatus==="Not Ready"
+    ?"Not-ready report sent to the restaurant. Please wait for the next READY alert."
+    :"Delivery started successfully!"
   );
-
  }catch(error){
   showMessage("Status update failed: "+error.message);
  }
