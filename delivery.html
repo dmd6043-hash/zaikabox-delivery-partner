@@ -380,6 +380,7 @@ async function saveAvailabilityPosition(position){
     latitude:c.latitude,
     longitude:c.longitude,
     accuracy:c.accuracy,
+    isActive:true,
     updatedAt:serverTimestamp()
    },{merge:true});
    publishedTrips++;
@@ -549,7 +550,7 @@ function renderOrders(){
         ? `<button class="secondary" onclick="updateStatus('${order.id}','Not Ready')">ORDER NOT READY</button><button onclick="updateStatus('${order.id}','Out for Delivery')">START DELIVERY</button>`
         : isNotReady
          ? `<button disabled>WAITING FOR RESTAURANT</button>`
-         : `<button onclick="updateStatus('${order.id}','Out for Delivery')">START DELIVERY</button>`
+         : `<button disabled>WAITING FOR RESTAURANT</button>`
      }
     </div>
    </div>
@@ -609,6 +610,21 @@ window.updateStatus=async function(orderId,newStatus){
    }
   }
   await batch.commit();
+
+  if(newStatus==="Delivered"&&order.trackingCode){
+   const deliveredCode=String(order.trackingCode).toUpperCase().replace(/[\\s-]/g,"");
+   if(/^[A-Z2-9]{20}$/.test(deliveredCode)){
+    try{
+     await updateDoc(doc(db,"deliveryLocations",deliveredCode),{
+      isActive:false,
+      stoppedAt:serverTimestamp(),
+      updatedAt:serverTimestamp()
+     });
+    }catch(locationStopError){
+     console.warn("Could not close the live GPS session:",locationStopError);
+    }
+   }
+  }
 
   if(newStatus==="Out for Delivery"&&order.trackingCode){
    try{
