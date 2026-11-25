@@ -384,11 +384,11 @@ async function saveAvailabilityPosition(position){
    publishedTrips++;
   }catch(locationError){
    console.warn("Customer live location update failed:",locationError);
-   document.getElementById("gpsStatus").textContent="GPS active, lekin customer map update nahi hua: "+locationError.message;
+   document.getElementById("gpsStatus").textContent="GPS is active, but the customer map was not updated: "+locationError.message;
   }
  }
  document.getElementById("gpsStatus").textContent="GPS active · Accuracy "+Math.round(c.accuracy)+" m · Location updated."+
-  (publishedTrips?" · Customer live map sharing active.":activeTrips.length?" · Customer map update failed; GPS/rules check karein.":"");
+  (publishedTrips?" · Customer live map sharing active.":activeTrips.length?" · Customer map update failed. Please check GPS permissions and Firestore Rules.":"");
 }
 
 function startAvailabilityWatch(){
@@ -397,7 +397,7 @@ function startAvailabilityWatch(){
   try{await saveAvailabilityPosition(position);}
   catch(error){showMessage("GPS save error: "+(error.code||"")+" - "+error.message);}
  },error=>{
-  document.getElementById("gpsStatus").textContent="GPS error: "+error.message+" (Location permission aur device GPS check karein.)";
+  document.getElementById("gpsStatus").textContent="GPS error: "+error.message+" (Please check location permissions and device GPS.)";
  },{enableHighAccuracy:true,maximumAge:5000,timeout:20000});
 }
 
@@ -411,7 +411,7 @@ function stopAvailabilityWatch(){
 window.goOnline=async function(){
  if(!currentUser||availabilityBusy)return;
  availabilityBusy=true;
- setAvailabilityUI(false,"GPS permission aur current location check ho rahi hai...");
+ setAvailabilityUI(false,"Checking GPS permission and current location...");
  try{
   const position=await getCurrentPosition();
   const c=position.coords;
