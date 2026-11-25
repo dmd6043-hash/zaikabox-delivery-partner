@@ -362,7 +362,31 @@ async function saveAvailabilityPosition(position){
   accuracy:c.accuracy,
   updatedAt:serverTimestamp()
  },{merge:true});
- document.getElementById("gpsStatus").textContent="GPS active · Accuracy "+Math.round(c.accuracy)+" m · Location updated.";
+
+ // Publish GPS only to each order assigned to this partner and currently out for delivery.
+ const activeTrips=currentOrders.filter(order=>
+  order.assignedTo===currentUser.uid &&
+  String(order.status||"").toLowerCase()==="out for delivery" &&
+  /^[A-Z2-9]{20}$/.test(String(order.trackingCode||"").toUpperCase().replace(/[\\s-]/g,""))
+ );
+ for(const order of activeTrips){
+  const code=String(order.trackingCode).toUpperCase().replace(/[\\s-]/g,"");
+  try{
+   await setDoc(doc(db,"deliveryLocations",code),{
+    orderId:order.id,
+    deliveryPartnerId:currentUser.uid,
+    latitude:c.latitude,
+    longitude:c.longitude,
+    accuracy:c.accuracy,
+    updatedAt:serverTimestamp()
+   },{merge:true});
+  }catch(locationError){
+   console.warn("Customer live location update failed:",locationError);
+   document.getElementById("gpsStatus").textContent="GPS active, lekin customer map update nahi hua: "+locationError.message;
+  }
+ }
+ document.getElementById("gpsStatus").textContent="GPS active · Accuracy "+Math.round(c.accuracy)+" m · Location updated."+
+  (activeTrips.length?" · Customer live map sharing active.":"");
 }
 
 function startAvailabilityWatch(){
