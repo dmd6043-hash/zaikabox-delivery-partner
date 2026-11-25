@@ -364,13 +364,14 @@ async function saveAvailabilityPosition(position){
  },{merge:true});
 
  // Publish GPS only to each order assigned to this partner and currently out for delivery.
+ let publishedTrips=0;
  const activeTrips=currentOrders.filter(order=>
   order.assignedTo===currentUser.uid &&
   String(order.status||"").toLowerCase()==="out for delivery" &&
-  /^[A-Z2-9]{20}$/.test(String(order.trackingCode||"").toUpperCase().replace(/[\\s-]/g,""))
+  /^[A-Z2-9]{20}$/.test(String(order.trackingCode||"").toUpperCase().replace(/[\s-]/g,""))
  );
  for(const order of activeTrips){
-  const code=String(order.trackingCode).toUpperCase().replace(/[\\s-]/g,"");
+  const code=String(order.trackingCode).toUpperCase().replace(/[\s-]/g,"");
   try{
    await setDoc(doc(db,"deliveryLocations",code),{
     orderId:order.id,
@@ -380,13 +381,14 @@ async function saveAvailabilityPosition(position){
     accuracy:c.accuracy,
     updatedAt:serverTimestamp()
    },{merge:true});
+   publishedTrips++;
   }catch(locationError){
    console.warn("Customer live location update failed:",locationError);
    document.getElementById("gpsStatus").textContent="GPS active, lekin customer map update nahi hua: "+locationError.message;
   }
  }
  document.getElementById("gpsStatus").textContent="GPS active · Accuracy "+Math.round(c.accuracy)+" m · Location updated."+
-  (activeTrips.length?" · Customer live map sharing active.":"");
+  (publishedTrips?" · Customer live map sharing active.":activeTrips.length?" · Customer map update failed; GPS/rules check karein.":"");
 }
 
 function startAvailabilityWatch(){
@@ -592,6 +594,26 @@ window.updateStatus=async function(orderId,newStatus){
   if(newStatus==="Out for Delivery")update.deliveryStartedAt=serverTimestamp();
   if(newStatus==="Delivered")update.deliveredAt=serverTimestamp();
   await updateDoc(doc(db,"orders",orderId),update);
+  if(newStatus==="Out for Delivery" && order.trackingCode){
+   try{
+    const firstPosition=await getCurrentPosition();
+    const coords=firstPosition.coords;
+    const code=String(order.trackingCode).toUpperCase().replace(/[\s-]/g,"");
+    if(/^[A-Z2-9]{20}$/.test(code)){
+     await setDoc(doc(db,"deliveryLocations",code),{
+      orderId:order.id,
+      deliveryPartnerId:currentUser.uid,
+      latitude:coords.latitude,
+      longitude:coords.longitude,
+      accuracy:coords.accuracy,
+      updatedAt:serverTimestamp()
+     },{merge:true});
+    }
+   }catch(locationError){
+    console.warn("Initial live location publish failed:",locationError);
+    showMessage("Delivery start ho gayi, lekin first GPS update nahi hua. GPS permission check karein.");
+   }
+  }
   showMessage(
    newStatus==="Delivered"
    ?"Order delivered successfully!"
