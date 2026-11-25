@@ -192,7 +192,8 @@ import {
  query,
  where,
  onSnapshot,
- updateDoc
+ updateDoc,
+ writeBatch
 } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
 
 const firebaseConfig={
@@ -576,29 +577,44 @@ window.updateStatus=async function(orderId,newStatus){
   return;
  }
  const currentStatus=String(order.status||"").toLowerCase();
+ if(newStatus==="Out for Delivery"&&currentStatus!=="ready"){
+  showMessage("You can start delivery only after the restaurant marks this order READY.");
+  return;
+ }
  if(newStatus==="Not Ready"&&currentStatus!=="ready"){
   showMessage("You can report an order as not ready only after the restaurant marks it READY.");
   return;
  }
- if(newStatus==="Out for Delivery"&&currentStatus==="not ready"){
-  showMessage("Please wait until the restaurant marks this order READY again.");
+ if(newStatus==="Delivered"&&currentStatus!=="out for delivery"){
+  showMessage("You can mark an order delivered only after starting delivery.");
   return;
  }
  try{
-  const update={status:newStatus,updatedAt:serverTimestamp()};
+  const batch=writeBatch(db);
+  const orderUpdate={status:newStatus,updatedAt:serverTimestamp()};
   if(newStatus==="Not Ready"){
-   update.notReadyAt=serverTimestamp();
-   update.notReadyBy=currentUser.uid;
-   update.readyConfirmedByRestaurant=false;
+   orderUpdate.notReadyAt=serverTimestamp();
+   orderUpdate.notReadyBy=currentUser.uid;
+   orderUpdate.readyConfirmedByRestaurant=false;
   }
-  if(newStatus==="Out for Delivery")update.deliveryStartedAt=serverTimestamp();
-  if(newStatus==="Delivered")update.deliveredAt=serverTimestamp();
-  await updateDoc(doc(db,"orders",orderId),update);
-  if(newStatus==="Out for Delivery" && order.trackingCode){
+  if(newStatus==="Out for Delivery")orderUpdate.deliveryStartedAt=serverTimestamp();
+  if(newStatus==="Delivered")orderUpdate.deliveredAt=serverTimestamp();
+  batch.update(doc(db,"orders",orderId),orderUpdate);
+
+  // Keep the customer's tracking timeline synchronized with the delivery app.
+  if((newStatus==="Out for Delivery"||newStatus==="Delivered")&&order.trackingCode){
+   const code=String(order.trackingCode).toUpperCase().replace(/[\\s-]/g,"");
+   if(/^[A-Z2-9]{20}$/.test(code)){
+    batch.update(doc(db,"orderTracking",code),{status:newStatus});
+   }
+  }
+  await batch.commit();
+
+  if(newStatus==="Out for Delivery"&&order.trackingCode){
    try{
     const firstPosition=await getCurrentPosition();
     const coords=firstPosition.coords;
-    const code=String(order.trackingCode).toUpperCase().replace(/[\s-]/g,"");
+    const code=String(order.trackingCode).toUpperCase().replace(/[\\s-]/g,"");
     if(/^[A-Z2-9]{20}$/.test(code)){
      await setDoc(doc(db,"deliveryLocations",code),{
       orderId:order.id,
@@ -606,12 +622,14 @@ window.updateStatus=async function(orderId,newStatus){
       latitude:coords.latitude,
       longitude:coords.longitude,
       accuracy:coords.accuracy,
+      isActive:true,
       updatedAt:serverTimestamp()
      },{merge:true});
     }
    }catch(locationError){
     console.warn("Initial live location publish failed:",locationError);
-    showMessage("Delivery has started, but the first GPS update was not received. Please check GPS permissions.");
+    showMessage("Delivery started. GPS is active, but the first live location update failed: "+locationError.message);
+    return;
    }
   }
   showMessage(
@@ -619,10 +637,11 @@ window.updateStatus=async function(orderId,newStatus){
    ?"Order delivered successfully!"
    :newStatus==="Not Ready"
     ?"Not-ready report sent to the restaurant. Please wait for the next READY alert."
-    :"Delivery started successfully!"
+    :"Delivery started successfully! Customer tracking is now updated."
   );
  }catch(error){
-  showMessage("Status update failed: "+error.message);
+  console.error("Delivery status update failed:",error);
+  showMessage("Status update failed: "+(error.code||"")+" "+error.message);
  }
 };
 </script>
