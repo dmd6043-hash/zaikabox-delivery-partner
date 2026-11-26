@@ -61,6 +61,49 @@ footer{text-align:center;color:#747b8c;font-size:11px;padding:20px 0 8px;letter-
 .time-clock{font-size:36px;font-weight:950;letter-spacing:1px;margin:10px 0;color:#ffb77e}
 .page-spacer{height:8px}
 @media(min-width:600px){#partnerNav{bottom:18px}.partner-page{padding-bottom:110px}}
+
+/* Clean light delivery-partner dashboard inspired by the reference layout */
+:root{color-scheme:light;--bg:#f4f4f7;--panel:#fff;--panel2:#f8f8fa;--line:#e5e5e9;--orange:#ff4d16;--orange2:#ff6b32;--muted:#737780;--green:#169b67}
+body{padding:14px 14px 30px;background:#f3f3f6;color:#17191f;font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif}
+body:before{display:none}
+header{margin:4px auto 18px;padding:7px 2px}
+.logo{width:46px;height:46px;flex-basis:46px;border-radius:15px;background:#17191f;color:#fff;box-shadow:none}
+h1{color:#17191f}.sub{color:#777b84}
+.card{background:#fff;border:1px solid #e2e2e7;border-radius:20px;padding:17px;margin-bottom:13px;box-shadow:0 3px 14px #17191f0a;backdrop-filter:none}
+h2{color:#191b21}
+.muted,.page-caption,.stat-label,.stat-note{color:#777b84}
+input{background:#fafafd;color:#17191f;border:1px solid #dedfe5}
+button{background:#ff4d16;color:#fff;box-shadow:none;border-radius:13px}
+button.secondary{background:#fff;color:#282b32;border:1px solid #d9dbe1}
+.status{background:#fff0e9;color:#e84a17;border:1px solid #ffd4c4}
+#availabilityStatus{background:#fff0e9;color:#e84a17}
+#gpsStatus{background:#f5f8fb;border:1px solid #e4eaf0;color:#596775}
+.info{color:#444852}.info b{color:#17191f}
+#partnerNav{bottom:0;width:100%;max-width:760px;border-radius:18px 18px 0 0;background:#fffffffa;border:1px solid #e7e7eb;border-bottom:0;box-shadow:0 -5px 22px #17191f0c;padding:8px 5px calc(8px + env(safe-area-inset-bottom));gap:3px}
+#partnerNav button{color:#858991;border-radius:12px}
+#partnerNav button.active{background:#fff0e9;color:#f04d19;border-color:transparent}
+.partner-page{padding-bottom:112px}
+.page-heading{color:#17191f}.page-card-title{color:#202229}
+.stat-tile{background:#fafafd;border:1px solid #ececf0}
+.stat-value{color:#17191f}
+.time-clock{color:#f04d19}
+#message{color:#d94a1b}
+footer{color:#a1a4ab}
+.home-hero{background:linear-gradient(135deg,#ff4d16,#ff6b28);color:#fff;border:0;padding:20px;overflow:hidden}
+.home-hero h2{font-size:23px;line-height:1.18;color:#fff;margin:10px 0 7px}
+.home-hero .muted{color:#fffD;font-size:13px}
+.home-hero .status{background:#ffffff24;color:#fff;border-color:#ffffff55}
+.home-hero button{background:#fff;color:#ed4b17;font-size:15px;min-height:52px}
+.home-hero button.secondary{background:#ffffff20;color:#fff;border:1px solid #ffffff65}
+.home-top-actions{display:flex;gap:8px;align-items:center}
+.home-top-actions a{display:inline-flex;align-items:center;justify-content:center;padding:9px 13px;border-radius:22px;background:#fff;color:#252830;border:1px solid #e2e2e7;text-decoration:none;font-size:12px;font-weight:800}
+.home-top-actions a.sos{color:#e54828}
+.quick-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:13px 0 18px}
+.quick-tile{background:#fff;border:1px solid #e2e2e7;border-radius:16px;padding:13px 10px;text-align:left;min-width:0}
+.quick-tile span{display:block;font-size:22px;margin-bottom:8px}
+.quick-tile b{font-size:12px;color:#292c33}
+.quick-tile small{display:block;color:#858991;font-size:10px;margin-top:4px}
+@media(min-width:600px){#partnerNav{bottom:12px;border-radius:18px}.partner-page{padding-bottom:120px}}
 </style>
 </head>
 
@@ -97,12 +140,25 @@ footer{text-align:center;color:#747b8c;font-size:11px;padding:20px 0 8px;letter-
   <div id="homePage" class="partner-page active">
     <div class="page-heading">Home</div>
     <div class="page-caption">Your deliveries and availability at a glance.</div>
-    <div class="card">
-      <h2>Delivery Availability</h2>
-      <div class="status" id="availabilityStatus">OFFLINE</div>
-      <p class="muted" id="gpsStatus">GPS permission will be requested when you go online.</p>
-      <button id="onlineBtn" onclick="goOnline()">GO ONLINE</button>
+    <div class="home-top-actions" style="justify-content:flex-end;margin:0 2px 12px">
+      <a href="https://wa.me/918319014718?text=Hello%20ZaikaBox%20Support%2C%20I%20need%20help." target="_blank" rel="noopener">☏ HELP</a>
+      <a class="sos" href="tel:112">SOS</a>
+    </div>
+    <div class="card home-hero">
+      <div class="toprow">
+        <div class="status" id="availabilityStatus">OFFLINE</div>
+        <span style="font-size:12px;font-weight:800;color:#fffD">ZAIKABOX PARTNER</span>
+      </div>
+      <h2 id="homeHeroTitle">Ready to earn today?</h2>
+      <p class="muted" id="homeHeroCaption">Go online when you are ready to receive delivery orders.</p>
+      <button id="onlineBtn" onclick="goOnline()">GO ONLINE →</button>
       <button id="offlineBtn" class="secondary" onclick="goOffline()" disabled>GO OFFLINE</button>
+    </div>
+    <p class="muted" id="gpsStatus" style="margin:0 2px 15px;padding:11px 13px;border-radius:12px">GPS permission will be requested when you go online.</p>
+    <div class="quick-grid">
+      <button class="quick-tile" onclick="showPage('earnings')"><span>₹</span><b>Earnings</b><small>View payout</small></button>
+      <button class="quick-tile" onclick="showPage('time')"><span>◷</span><b>My Time</b><small>Online session</small></button>
+      <button class="quick-tile" onclick="showPage('profile')"><span>♙</span><b>Profile</b><small>Account details</small></button>
     </div>
     <div class="page-heading" style="font-size:19px">My Deliveries</div>
     <div class="page-caption">Orders assigned to your account.</div>
