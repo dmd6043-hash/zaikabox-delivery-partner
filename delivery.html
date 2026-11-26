@@ -42,6 +42,25 @@ button:active{transform:scale(.985)}button.secondary{background:#292e3d;color:#f
 footer{text-align:center;color:#747b8c;font-size:11px;padding:20px 0 8px;letter-spacing:.3px}
 @media(min-width:600px){body{padding:24px}header{margin-bottom:26px}.card{padding:22px}.order-actions{grid-template-columns:repeat(3,1fr)}.order-actions button:last-child:nth-child(odd){grid-column:auto}}
 @media(max-width:380px){body{padding:13px 11px}.card{padding:16px;border-radius:18px}.order-actions{grid-template-columns:1fr}.order-actions button:last-child:nth-child(odd){grid-column:auto}h1{font-size:21px}}
+
+/* Bottom navigation and dedicated partner pages */
+#partnerNav{position:fixed;z-index:50;left:50%;bottom:12px;transform:translateX(-50%);width:min(720px,calc(100% - 22px));display:grid;grid-template-columns:repeat(3,1fr);gap:7px;padding:8px;background:#171923f2;border:1px solid #ffffff1c;border-radius:20px;box-shadow:0 12px 38px #0009;backdrop-filter:blur(18px)}
+#partnerNav button{margin:0;padding:10px 5px;background:transparent;color:#aeb4c4;box-shadow:none;border:1px solid transparent;font-size:11px;letter-spacing:0}
+#partnerNav button span{display:block;font-size:19px;margin-bottom:3px}
+#partnerNav button.active{background:#3b281b;color:#ffbd8a;border-color:#8d552d66}
+.partner-page{display:none;padding-bottom:92px;max-width:760px;margin:0 auto}
+.partner-page.active{display:block}
+.page-heading{font-size:24px;font-weight:900;letter-spacing:-.6px;margin:8px 3px 5px}
+.page-caption{color:#a7adbd;font-size:13px;margin:0 3px 18px}
+.stat-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.stat-tile{background:#10131c;border:1px solid #ffffff12;border-radius:16px;padding:15px;min-width:0}
+.stat-label{color:#a7adbd;font-size:12px;margin-bottom:8px}
+.stat-value{font-size:24px;font-weight:900;letter-spacing:-.5px;overflow-wrap:anywhere}
+.stat-note{color:#9299aa;font-size:11px;margin-top:5px}
+.page-card-title{font-size:16px;font-weight:850;margin:0 0 12px}
+.time-clock{font-size:36px;font-weight:950;letter-spacing:1px;margin:10px 0;color:#ffb77e}
+.page-spacer{height:8px}
+@media(min-width:600px){#partnerNav{bottom:18px}.partner-page{padding-bottom:110px}}
 </style>
 </head>
 
@@ -68,24 +87,59 @@ footer{text-align:center;color:#747b8c;font-size:11px;padding:20px 0 8px;letter-
   <div class="card">
     <div class="toprow">
       <div>
-        <h2 style="margin-bottom:5px">My Deliveries</h2>
+        <h2 style="margin-bottom:5px">Delivery Partner</h2>
         <div class="muted" id="partnerEmail"></div>
       </div>
       <button class="secondary" onclick="logout()">Logout</button>
     </div>
   </div>
 
-  <div class="card">
-    <h2>Delivery Availability</h2>
-    <div class="status" id="availabilityStatus">OFFLINE</div>
-    <p class="muted" id="gpsStatus">GPS permission will be requested when you go online.</p>
-    <button id="onlineBtn" onclick="goOnline()">GO ONLINE</button>
-    <button id="offlineBtn" class="secondary" onclick="goOffline()" disabled>GO OFFLINE</button>
+  <div id="homePage" class="partner-page active">
+    <div class="page-heading">Home</div>
+    <div class="page-caption">Your deliveries and availability at a glance.</div>
+    <div class="card">
+      <h2>Delivery Availability</h2>
+      <div class="status" id="availabilityStatus">OFFLINE</div>
+      <p class="muted" id="gpsStatus">GPS permission will be requested when you go online.</p>
+      <button id="onlineBtn" onclick="goOnline()">GO ONLINE</button>
+      <button id="offlineBtn" class="secondary" onclick="goOffline()" disabled>GO OFFLINE</button>
+    </div>
+    <div class="page-heading" style="font-size:19px">My Deliveries</div>
+    <div class="page-caption">Orders assigned to your account.</div>
+    <div id="orders">
+      <div class="card empty"><div>Loading assigned orders...</div></div>
+    </div>
   </div>
 
-  <div id="orders">
-    <div class="card empty">
-      <div>Loading assigned orders...</div>
+  <div id="earningsPage" class="partner-page">
+    <div class="page-heading">My Earnings</div>
+    <div class="page-caption">Your completed delivery summary.</div>
+    <div class="card">
+      <div class="stat-grid">
+        <div class="stat-tile"><div class="stat-label">Completed deliveries</div><div class="stat-value" id="earningDeliveries">0</div><div class="stat-note">Successfully delivered</div></div>
+        <div class="stat-tile"><div class="stat-label">Recorded earnings</div><div class="stat-value" id="earningTotal">₹0</div><div class="stat-note">Only saved payout amounts</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="page-card-title">Earning history</div>
+      <div id="earningHistory" class="muted">Your completed deliveries will appear here.</div>
+    </div>
+    <div class="muted" style="padding:0 5px">Note: Order value is not your delivery earning. Earnings are shown only when a delivery payout amount is recorded in the order.</div>
+  </div>
+
+  <div id="timePage" class="partner-page">
+    <div class="page-heading">My Time</div>
+    <div class="page-caption">Track your current online session.</div>
+    <div class="card">
+      <div class="page-card-title">Current session</div>
+      <div class="status" id="timeStatus">OFFLINE</div>
+      <div class="time-clock" id="onlineDuration">00:00:00</div>
+      <div class="muted" id="onlineSinceText">Go online to start your session timer.</div>
+    </div>
+    <div class="card">
+      <div class="page-card-title">Availability controls</div>
+      <p class="muted">You can change your online status from the Home page. GPS sharing works while this app page remains open.</p>
+      <button class="secondary" onclick="showPage('home')">GO TO HOME</button>
     </div>
   </div>
 </section>
@@ -139,7 +193,7 @@ let availabilityWatchId=null;
 let isOnline=false;
 let availabilityBusy=false;
 let previousOrderStatuses={};
-let deliveryAlarmAudio=null;
+let deliveryAlarmAudio=null;\nlet onlineSince=null;\nlet onlineTimeTicker=null;\nlet activePartnerPage="home";
 function unlockDeliveryAlarm(){try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;if(!deliveryAlarmAudio)deliveryAlarmAudio=new AC();if(deliveryAlarmAudio.state==="suspended")deliveryAlarmAudio.resume();}catch(e){}}
 document.addEventListener("pointerdown",unlockDeliveryAlarm,{passive:true});
 function playReadyBuzzerOnce(){try{unlockDeliveryAlarm();if(deliveryAlarmAudio&&deliveryAlarmAudio.state==="running"){const now=deliveryAlarmAudio.currentTime;const osc=deliveryAlarmAudio.createOscillator(),gain=deliveryAlarmAudio.createGain();osc.type="sawtooth";osc.frequency.setValueAtTime(430,now);osc.frequency.linearRampToValueAtTime(330,now+1.45);gain.gain.setValueAtTime(0.0001,now);gain.gain.linearRampToValueAtTime(0.32,now+0.06);gain.gain.setValueAtTime(0.32,now+1.25);gain.gain.exponentialRampToValueAtTime(0.0001,now+1.55);osc.connect(gain);gain.connect(deliveryAlarmAudio.destination);osc.start(now);osc.stop(now+1.58);}if(navigator.vibrate)navigator.vibrate([1200]);}catch(e){console.warn("Ready buzzer unavailable",e);}}
@@ -371,7 +425,7 @@ window.goOffline=async function(){
    isOnline:false,
    updatedAt:serverTimestamp()
   },{merge:true});
-  setAvailabilityUI(false,"You are offline. GPS sharing stopped.");
+  onlineSince=null;\n  setAvailabilityUI(false,"You are offline. GPS sharing stopped.");
  }catch(error){
   showMessage("GO OFFLINE ERROR: "+(error.code||"")+" - "+error.message);
   startAvailabilityWatch();
@@ -408,7 +462,7 @@ function loadOrders(uid){
    return bTime-aTime;
   });
 
-  renderOrders();
+  renderOrders();\n  renderEarnings();
  },error=>{
   ordersBox.innerHTML=`
    <div class="card">
@@ -416,6 +470,67 @@ function loadOrders(uid){
     <p class="muted">${escapeHTML(error.message)}</p>
    </div>`;
  });
+}
+
+function showPage(page){
+ const allowed=["home","earnings","time"];
+ if(!allowed.includes(page))return;
+ activePartnerPage=page;
+ document.querySelectorAll(".partner-page").forEach(el=>el.classList.remove("active"));
+ const target=document.getElementById(page==="home"?"homePage":page==="earnings"?"earningsPage":"timePage");
+ if(target)target.classList.add("active");
+ document.querySelectorAll("#partnerNav button").forEach(btn=>btn.classList.toggle("active",btn.dataset.page===page));
+ if(page==="earnings")renderEarnings();
+ if(page==="time")updateOnlineTimer();
+}
+window.showPage=showPage;
+
+function updateOnlineTimer(){
+ const clock=document.getElementById("onlineDuration");
+ const note=document.getElementById("onlineSinceText");
+ const badge=document.getElementById("timeStatus");
+ if(badge)badge.textContent=isOnline?"ONLINE":"OFFLINE";
+ if(!clock)return;
+ if(!isOnline||!onlineSince){
+  clock.textContent="00:00:00";
+  if(note)note.textContent="Go online to start your session timer.";
+  if(onlineTimeTicker){clearInterval(onlineTimeTicker);onlineTimeTicker=null;}
+  return;
+ }
+ const elapsed=Math.max(0,Date.now()-onlineSince);
+ const total=Math.floor(elapsed/1000);
+ const hours=String(Math.floor(total/3600)).padStart(2,"0");
+ const minutes=String(Math.floor((total%3600)/60)).padStart(2,"0");
+ const seconds=String(total%60).padStart(2,"0");
+ clock.textContent=hours+":"+minutes+":"+seconds;
+ if(note)note.textContent="Your online session is running. Keep this app open for GPS updates.";
+ if(!onlineTimeTicker)onlineTimeTicker=setInterval(updateOnlineTimer,1000);
+}
+
+function renderEarnings(){
+ const delivered=currentOrders.filter(order=>String(order.status||"").toLowerCase()==="delivered");
+ const payoutFields=["deliveryEarning","partnerEarning","riderEarning","earningAmount"];
+ const amountOf=order=>{
+  for(const key of payoutFields){
+   const value=Number(order[key]);
+   if(order[key]!==undefined&&order[key]!==null&&Number.isFinite(value))return value;
+  }
+  return null;
+ };
+ const recorded=delivered.map(order=>({order,amount:amountOf(order)}));
+ const total=recorded.reduce((sum,item)=>sum+(item.amount??0),0);
+ const count=document.getElementById("earningDeliveries");
+ const amount=document.getElementById("earningTotal");
+ const history=document.getElementById("earningHistory");
+ if(count)count.textContent=String(delivered.length);
+ if(amount)amount.textContent="₹"+total.toFixed(2).replace(/\.00$/,"");
+ if(!history)return;
+ if(!delivered.length){history.textContent="No completed deliveries yet.";return;}
+ history.innerHTML=recorded.slice(0,20).map(({order,amount})=>{
+  const code=escapeHTML(String(order.id).slice(-6).toUpperCase());
+  const value=amount===null?"Payout not recorded":"₹"+amount.toFixed(2).replace(/\.00$/,"");
+  return '<div style="display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid #ffffff12"><span>Order #'+code+'</span><b>'+value+'</b></div>';
+ }).join("");
 }
 
 function renderOrders(){
