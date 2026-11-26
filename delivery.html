@@ -102,6 +102,30 @@ button.secondary{background:#262019;color:#fffaf5;border:1px solid rgba(255,255,
 .quick-tile b{font-size:12px;color:#fffaf5}
 .quick-tile small{display:block;color:#b4a69a;font-size:10px;margin-top:4px}
 @media(min-width:600px){#partnerNav{bottom:12px;border-radius:18px}.partner-page{padding-bottom:120px}}
+
+/* Remove Android/iOS blue tap flash and add smooth ZaikaBox micro-interactions */
+*{-webkit-tap-highlight-color:transparent}
+button,a,.quick-tile,#partnerNav button{outline:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+button:focus,button:focus-visible,a:focus,a:focus-visible,.quick-tile:focus{outline:none;box-shadow:0 0 0 2px rgba(255,145,70,.32),0 0 0 5px rgba(255,145,70,.10)}
+button:active,.quick-tile:active,#partnerNav button:active{transform:scale(.97);filter:brightness(1.12)}
+button,#partnerNav button,.quick-tile{transition:transform .18s ease,background .22s ease,color .22s ease,border-color .22s ease,box-shadow .22s ease,filter .18s ease}
+#partnerNav{grid-template-columns:repeat(4,minmax(0,1fr))}
+#partnerNav button{position:relative;overflow:hidden}
+#partnerNav button.active{background:linear-gradient(145deg,rgba(255,153,82,.19),rgba(255,117,42,.07));box-shadow:inset 0 0 0 1px rgba(255,155,88,.16),0 4px 14px rgba(255,120,48,.08);animation:navPop .24s ease-out}
+#partnerNav button.active:after{content:"";position:absolute;left:34%;right:34%;bottom:3px;height:2px;border-radius:4px;background:linear-gradient(90deg,#ffb16f,#ff7628);animation:navLine .25s ease-out}
+.partner-page.active{animation:pageEnter .28s cubic-bezier(.2,.75,.25,1) both}
+.card{transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
+.quick-tile{cursor:pointer}
+.quick-tile:active{background:#302116;border-color:rgba(255,151,81,.45)}
+.logo{animation:logoGlow 3.8s ease-in-out infinite}
+.home-hero{animation:heroReveal .45s ease-out both}
+.status{transition:background .2s ease,color .2s ease}
+@keyframes pageEnter{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
+@keyframes navPop{from{transform:scale(.94)}to{transform:scale(1)}}
+@keyframes navLine{from{transform:scaleX(.25);opacity:.3}to{transform:scaleX(1);opacity:1}}
+@keyframes heroReveal{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes logoGlow{0%,100%{box-shadow:0 7px 22px rgba(255,138,53,.16)}50%{box-shadow:0 7px 27px rgba(255,138,53,.34)}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
 </style>
 </head>
 
