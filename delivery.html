@@ -415,8 +415,10 @@ window.goOnline=async function(){
    latitude:c.latitude,
    longitude:c.longitude,
    accuracy:c.accuracy,
+   onlineSince:serverTimestamp(),
    updatedAt:serverTimestamp()
   },{merge:true});
+  onlineSince=Date.now();
   isOnline=true;
   setAvailabilityUI(true,"You are online. GPS location share ho rahi hai.");
   startAvailabilityWatch();
