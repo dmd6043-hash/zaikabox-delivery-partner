@@ -242,6 +242,28 @@ button,#partnerNav button,.quick-tile{transition:transform .18s ease,background 
       <div class="info" style="margin-top:13px"><b>Partner ID</b><div id="profileId" class="muted" style="overflow-wrap:anywhere">—</div></div>
     </div>
     <div class="card">
+      <div class="page-card-title">Payment &amp; Bank Details</div>
+      <p class="muted">Add your payout details so ZaikaBox can send your delivery earnings. Your details are private and visible only to you and authorised admins.</p>
+      <label class="muted" for="payoutHolder">Account holder name</label>
+      <input id="payoutHolder" type="text" maxlength="100" placeholder="Name as per bank account" autocomplete="name">
+      <label class="muted" for="payoutBank">Bank name</label>
+      <input id="payoutBank" type="text" maxlength="100" placeholder="Bank name">
+      <label class="muted" for="payoutAccount">Bank account number</label>
+      <input id="payoutAccount" type="text" inputmode="numeric" maxlength="20" placeholder="Enter account number" autocomplete="off">
+      <label class="muted" for="payoutIfsc">IFSC code</label>
+      <input id="payoutIfsc" type="text" maxlength="11" placeholder="e.g. SBIN0001234" autocapitalize="characters">
+      <div style="height:8px"></div>
+      <div style="text-align:center;color:#ffb16f;font-weight:800;font-size:12px">OR ADD UPI DETAILS</div>
+      <label class="muted" for="payoutUpi">UPI ID</label>
+      <input id="payoutUpi" type="text" maxlength="100" placeholder="yourname@bank">
+      <label class="muted" for="payoutQrFile">UPI QR code image (optional)</label>
+      <input id="payoutQrFile" type="file" accept="image/png,image/jpeg,image/webp">
+      <img id="payoutQrPreview" class="hidden" alt="UPI QR preview" style="display:block;max-width:190px;max-height:190px;object-fit:contain;margin:12px auto;border-radius:12px;background:#fff;padding:8px">
+      <div id="payoutStatus" class="status">NOT SUBMITTED</div>
+      <p class="muted">Add either complete bank details or a UPI ID. QR image is optional. Payout verification and actual transfers are handled by ZaikaBox Admin.</p>
+      <button id="savePayoutBtn" onclick="savePayoutDetails()">SAVE PAYMENT DETAILS</button>
+    </div>
+    <div class="card">
       <div class="page-card-title">Account &amp; support</div>
       <p class="muted">For changes to your registered details or account assistance, contact ZaikaBox support.</p>
       <a href="https://wa.me/918319014718?text=Hello%20ZaikaBox%20Support%2C%20I%20need%20help%20with%20my%20delivery%20partner%20profile." target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;border-radius:14px;padding:14px 16px;margin-top:10px;background:linear-gradient(135deg,#ffad61,#ff812b);color:#211108;font-weight:850;font-size:14px">CONTACT SUPPORT</a>
@@ -406,6 +428,7 @@ onAuthStateChanged(auth,async user=>{
   currentUser=user;
   currentAccount=account;
   renderProfile();
+  await loadPayoutDetails();
   loginSection.classList.add("hidden");
   dashboard.classList.remove("hidden");
   document.getElementById("partnerNav").classList.remove("hidden");
@@ -635,6 +658,140 @@ function renderProfile(){
  const avatar=document.getElementById("profileAvatar");
  if(avatar)avatar.textContent=String(name).trim().charAt(0).toUpperCase()||"Z";
 }
+
+let payoutQrDataUrl="";
+
+async function loadPayoutDetails(){
+ if(!currentUser)return;
+ try{
+  const snap=await getDoc(doc(db,"deliveryPayoutDetails",currentUser.uid));
+  const data=snap.exists()?snap.data():{};
+  const fields={
+   payoutHolder:data.accountHolderName||"",
+   payoutBank:data.bankName||"",
+   payoutAccount:data.accountNumber||"",
+   payoutIfsc:data.ifscCode||"",
+   payoutUpi:data.upiId||""
+  };
+  Object.entries(fields).forEach(([id,value])=>{
+   const el=document.getElementById(id);
+   if(el)el.value=value;
+  });
+  payoutQrDataUrl=data.qrDataUrl||"";
+  const preview=document.getElementById("payoutQrPreview");
+  if(preview){
+   if(payoutQrDataUrl){preview.src=payoutQrDataUrl;preview.classList.remove("hidden");}
+   else{preview.removeAttribute("src");preview.classList.add("hidden");}
+  }
+  const status=document.getElementById("payoutStatus");
+  if(status)status.textContent=String(data.verificationStatus||"NOT SUBMITTED").toUpperCase();
+ }catch(error){
+  showMessage("Could not load payment details: "+(error.code||"")+" "+error.message);
+ }
+}
+
+document.getElementById("payoutQrFile")?.addEventListener("change",event=>{
+ const file=event.target.files?.[0];
+ if(!file)return;
+ if(!["image/png","image/jpeg","image/webp"].includes(file.type)){
+  showMessage("Please choose a PNG, JPG or WEBP QR image.");
+  event.target.value="";
+  return;
+ }
+ if(file.size>5*1024*1024){
+  showMessage("QR image must be 5 MB or smaller.");
+  event.target.value="";
+  return;
+ }
+ const reader=new FileReader();
+ reader.onload=()=>{
+  const image=new Image();
+  image.onload=()=>{
+   const canvas=document.createElement("canvas");
+   const scale=Math.min(1,480/Math.max(image.width,image.height));
+   canvas.width=Math.max(1,Math.round(image.width*scale));
+   canvas.height=Math.max(1,Math.round(image.height*scale));
+   const context=canvas.getContext("2d");
+   context.fillStyle="#ffffff";
+   context.fillRect(0,0,canvas.width,canvas.height);
+   context.drawImage(image,0,0,canvas.width,canvas.height);
+   const dataUrl=canvas.toDataURL("image/jpeg",0.72);
+   if(dataUrl.length>180000){
+    showMessage("QR image is too large after compression. Please choose a simpler QR image.");
+    event.target.value="";
+    return;
+   }
+   payoutQrDataUrl=dataUrl;
+   const preview=document.getElementById("payoutQrPreview");
+   preview.src=dataUrl;
+   preview.classList.remove("hidden");
+   showMessage("QR image ready. Save payment details to submit it.");
+  };
+  image.onerror=()=>showMessage("Could not read this QR image. Please try another image.");
+  image.src=String(reader.result);
+ };
+ reader.onerror=()=>showMessage("Could not load the selected QR image.");
+ reader.readAsDataURL(file);
+});
+
+window.savePayoutDetails=async function(){
+ if(!currentUser)return;
+ const holder=document.getElementById("payoutHolder").value.trim();
+ const bank=document.getElementById("payoutBank").value.trim();
+ const accountNumber=document.getElementById("payoutAccount").value.replace(/\s/g,"");
+ const ifsc=document.getElementById("payoutIfsc").value.trim().toUpperCase();
+ const upi=document.getElementById("payoutUpi").value.trim();
+ const hasAnyBank=!!(holder||bank||accountNumber||ifsc);
+ const completeBank=!!(holder&&bank&&accountNumber&&ifsc);
+ const completeUpi=/^[\w.\-]{2,256}@[\w.\-]{2,64}$/.test(upi);
+ if(hasAnyBank&&!completeBank){
+  showMessage("Please complete all four bank fields, or clear them and use UPI.");
+  return;
+ }
+ if(completeBank&&(!/^\d{6,20}$/.test(accountNumber)||!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc))){
+  showMessage("Please check the bank account number and IFSC code.");
+  return;
+ }
+ if(upi&&!completeUpi){
+  showMessage("Please enter a valid UPI ID.");
+  return;
+ }
+ if(!completeBank&&!completeUpi&&!payoutQrDataUrl){
+  showMessage("Add complete bank details or a UPI ID before saving.");
+  return;
+ }
+ if(!completeBank&&!completeUpi&&payoutQrDataUrl){
+  showMessage("Please also enter a UPI ID or complete bank details with the QR image.");
+  return;
+ }
+ const btn=document.getElementById("savePayoutBtn");
+ btn.disabled=true;
+ btn.textContent="SAVING...";
+ try{
+  const ref=doc(db,"deliveryPayoutDetails",currentUser.uid);
+  const old=await getDoc(ref);
+  const payload={
+   deliveryPartnerId:currentUser.uid,
+   accountHolderName:holder,
+   bankName:bank,
+   accountNumber:completeBank?accountNumber:"",
+   ifscCode:ifsc,
+   upiId:upi,
+   qrDataUrl:payoutQrDataUrl,
+   verificationStatus:old.exists()?(old.data().verificationStatus||"Pending Verification"):"Pending Verification",
+   updatedAt:serverTimestamp()
+  };
+  await setDoc(ref,payload,{merge:true});
+  const status=document.getElementById("payoutStatus");
+  if(status)status.textContent=payload.verificationStatus.toUpperCase();
+  showMessage("Payment details saved. ZaikaBox Admin will verify them before payout.");
+ }catch(error){
+  showMessage("Could not save payment details: "+(error.code||"")+" "+error.message);
+ }finally{
+  btn.disabled=false;
+  btn.textContent="SAVE PAYMENT DETAILS";
+ }
+};
 
 function updateOnlineTimer(){
  const clock=document.getElementById("onlineDuration");
