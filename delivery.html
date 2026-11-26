@@ -182,6 +182,7 @@ button,#partnerNav button,.quick-tile{transition:transform .18s ease,background 
       <button id="offlineBtn" class="secondary" onclick="goOffline()" disabled>GO OFFLINE</button>
     </div>
     <p class="muted" id="gpsStatus" style="margin:0 2px 15px;padding:11px 13px;border-radius:12px">GPS permission will be requested when you go online.</p>
+    <div class="card"><div class="page-card-title">New &amp; Active Orders</div><p class="muted">New assigned orders will appear here. Accept or reject each offer.</p><div id="activeOrdersBox"><div class="empty muted">No new orders right now.</div></div></div>
   </div>
 
   <div id="earningsPage" class="partner-page">
@@ -233,7 +234,7 @@ button,#partnerNav button,.quick-tile{transition:transform .18s ease,background 
     </div>
     <div class="card">
       <div class="page-card-title">Order History</div>
-      <p class="muted">All orders assigned to your delivery partner account.</p>
+      <p class="muted">Only successfully delivered orders appear here. This page is view-only.</p>
       <div id="orders">
         <div class="card empty"><div>Loading order history...</div></div>
       </div>
@@ -325,6 +326,8 @@ let availabilityWatchId=null;
 let isOnline=false;
 let availabilityBusy=false;
 let previousOrderStatuses={};
+let ordersFirstSnapshot=true;
+let notifiedOrderIds=new Set();
 let deliveryAlarmAudio=null;
 let onlineSince=null;
 let onlineTimeTicker=null;
@@ -391,7 +394,10 @@ onAuthStateChanged(auth,async user=>{
  }
 
  if(!user){
-  currentUser=null;
+   currentUser=null;
+   ordersFirstSnapshot=true;
+   previousOrderStatuses={};
+   notifiedOrderIds.clear();
   stopAvailabilityWatch();
   isOnline=false;
   loginSection.classList.remove("hidden");
@@ -592,27 +598,24 @@ function loadOrders(uid){
  );
 
  unsubscribeOrders=onSnapshot(q,snapshot=>{
-  currentOrders=snapshot.docs.map(item=>({
-   id:item.id,
-   ...item.data()
-  }));
-
-  // One long buzzer only when an assigned order changes into Ready.
-  currentOrders.forEach(order=>{
-   const status=String(order.status||"").toLowerCase();
-   const previous=previousOrderStatuses[order.id];
-   if(previous && previous!=="ready" && status==="ready")playReadyBuzzerOnce();
-   previousOrderStatuses[order.id]=status;
-  });
-
-  currentOrders.sort((a,b)=>{
-   const aTime=a.createdAt?.toMillis?.()||0;
-   const bTime=b.createdAt?.toMillis?.()||0;
-   return bTime-aTime;
-  });
-
-  renderOrders();
-  renderEarnings();
+   const isInitial=ordersFirstSnapshot;
+   currentOrders=snapshot.docs.map(item=>({id:item.id,...item.data()}));
+   snapshot.docChanges().forEach(change=>{
+    if(change.type!=="added" || isInitial)return;
+    const order={id:change.doc.id,...change.doc.data()};
+    if(order.assignedTo===uid && !["delivered","cancelled"].includes(String(order.status||"").toLowerCase()))notifyNewOrder(order);
+   });
+   currentOrders.forEach(order=>{
+    const status=String(order.status||"").toLowerCase();
+    const previous=previousOrderStatuses[order.id];
+    if(!isInitial && previous && previous!==status && order.assignedTo===uid && !["delivered","cancelled"].includes(status) && !notifiedOrderIds.has(order.id))notifyNewOrder(order);
+    previousOrderStatuses[order.id]=status;
+   });
+   ordersFirstSnapshot=false;
+   currentOrders.sort((a,b)=>(b.createdAt?.toMillis?.()||0)-(a.createdAt?.toMillis?.()||0));
+   renderActiveOrders();
+   renderOrders();
+   renderEarnings();
  },error=>{
   ordersBox.innerHTML=`
    <div class="card">
@@ -838,67 +841,70 @@ function renderEarnings(){
  }).join("");
 }
 
-function renderOrders(){
- if(currentOrders.length===0){
-  ordersBox.innerHTML=`
-   <div class="card empty">
-    <div style="font-size:35px">🛵</div>
-    <h2>No Assigned Orders</h2>
-    <p class="muted">Orders assigned by the administrator will appear here.</p>
-   </div>`;
-  return;
- }
-
- ordersBox.innerHTML=currentOrders.map(order=>{
+function renderActiveOrders(){
+ const box=document.getElementById("activeOrdersBox");
+ if(!box)return;
+ const active=currentOrders.filter(order=>!["delivered","cancelled"].includes(String(order.status||"").toLowerCase()) && String(order.deliveryAcceptanceStatus||"").toLowerCase()!=="rejected");
+ if(!active.length){box.innerHTML='<div class="empty muted">No new orders right now.</div>';return;}
+ box.innerHTML=active.map(order=>{
   const status=String(order.status||"Pending");
+  const accepted=String(order.deliveryAcceptanceStatus||"").toLowerCase()==="accepted";
   const name=order.customerName||order.name||order.userName||"Customer";
   const phone=order.phone||order.customerPhone||"";
   const address=order.deliveryAddress||order.address||order.customerAddress||"Address not available";
   const total=order.totalAmount??order.total??order.grandTotal??"";
-  const normalizedStatus=status.toLowerCase();
-  const isDelivered=normalizedStatus==="delivered";
-  const isOut=normalizedStatus==="out for delivery";
-  const isReady=normalizedStatus==="ready";
-  const isNotReady=normalizedStatus==="not ready";
-
   const phoneLink=String(phone).replace(/[^\d+]/g,"");
-  const mapLink="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(address);
-
-  return `
-   <div class="card">
-    <div class="toprow">
-     <div class="order-title">Order #${escapeHTML(order.id.slice(-6).toUpperCase())}</div>
-     <span class="status">${escapeHTML(status)}</span>
-    </div>
-
-    <div class="info">
-     <b>Customer:</b> ${escapeHTML(name)}<br>
-     <b>Phone:</b> ${escapeHTML(phone||"Not available")}<br>
-     <b>Address:</b> ${escapeHTML(address)}<br>
-     ${total!==""?`<b>Order Total:</b> ₹${escapeHTML(total)}<br>`:""}
-     ${order.paymentMethod?`<b>Payment:</b> ${escapeHTML(order.paymentMethod)}<br>`:""}
-    </div>
-
-    <div class="order-actions">
-     ${phoneLink?`<button class="secondary" onclick="callCustomer('${escapeHTML(phoneLink)}')">📞 Call Customer</button>`:""}
-     <button class="secondary" onclick="openMap('${encodeURIComponent(address)}')">📍 Open Google Maps</button>
-
-     ${
-      isDelivered
-      ? `<button disabled>✓ Delivered</button>`
-      : isOut
-       ? `<button onclick="updateStatus('${order.id}','Delivered')">MARK DELIVERED</button>`
-       : isReady
-        ? `<button class="secondary" onclick="updateStatus('${order.id}','Not Ready')">ORDER NOT READY</button><button onclick="updateStatus('${order.id}','Out for Delivery')">START DELIVERY</button>`
-        : isNotReady
-         ? `<button disabled>WAITING FOR RESTAURANT</button>`
-         : `<button disabled>WAITING FOR RESTAURANT</button>`
-     }
-    </div>
-   </div>
-  `;
+  const isOut=status.toLowerCase()==="out for delivery";
+  const isReady=status.toLowerCase()==="ready";
+  return `<div class="card"><div class="toprow"><div class="order-title">Order #${escapeHTML(order.id.slice(-6).toUpperCase())}</div><span class="status">${escapeHTML(accepted?"ACCEPTED · "+status:"NEW ORDER · "+status)}</span></div>
+   <div class="info"><b>Customer:</b> ${escapeHTML(name)}<br><b>Address:</b> ${escapeHTML(address)}<br>${total!==""?`<b>Order Total:</b> ₹${escapeHTML(total)}<br>`:""}${order.paymentMethod?`<b>Payment:</b> ${escapeHTML(order.paymentMethod)}`:""}</div>
+   <div class="order-actions">${!accepted?`<button onclick="acceptOrder('${order.id}')">✓ ACCEPT</button><button class="secondary" onclick="rejectOrder('${order.id}')">✕ REJECT</button>`:`${phoneLink?`<button class="secondary" onclick="callCustomer('${escapeHTML(phoneLink)}')">📞 CALL CUSTOMER</button>`:""}<button class="secondary" onclick="openMap('${encodeURIComponent(address)}')">📍 OPEN MAP</button>${isOut?`<button onclick="updateStatus('${order.id}','Delivered')">MARK DELIVERED</button>`:isReady?`<button onclick="updateStatus('${order.id}','Out for Delivery')">START DELIVERY</button>`:`<button disabled>WAITING FOR RESTAURANT</button>`}</div></div>`;
  }).join("");
 }
+
+function renderOrders(){
+ const delivered=currentOrders.filter(order=>String(order.status||"").toLowerCase()==="delivered");
+ if(!delivered.length){ordersBox.innerHTML='<div class="empty muted"><div style="font-size:35px">📦</div><h2>No Delivery History</h2><p>Your completed deliveries will appear here.</p></div>';return;}
+ ordersBox.innerHTML=delivered.map(order=>{
+  const status=String(order.status||"Delivered");
+  const name=order.customerName||order.name||order.userName||"Customer";
+  const address=order.deliveryAddress||order.address||order.customerAddress||"Address not available";
+  const total=order.totalAmount??order.total??order.grandTotal??"";
+  return `<div class="card"><div class="toprow"><div class="order-title">Order #${escapeHTML(order.id.slice(-6).toUpperCase())}</div><span class="status">${escapeHTML(status)}</span></div><div class="info"><b>Customer:</b> ${escapeHTML(name)}<br><b>Address:</b> ${escapeHTML(address)}<br>${total!==""?`<b>Order Total:</b> ₹${escapeHTML(total)}`:""}</div></div>`;
+ }).join("");
+}
+
+function notifyNewOrder(order){
+ if(notifiedOrderIds.has(order.id))return;
+ notifiedOrderIds.add(order.id);
+ playReadyBuzzerOnce();
+ showMessage("New delivery order received! Please accept or reject.");
+ if("Notification" in window && Notification.permission==="granted"){
+  try{new Notification("ZaikaBox · New Order",{body:"Order #"+String(order.id).slice(-6).toUpperCase()+" assigned to you. Open the app to respond."});}catch(e){}
+ }
+ if(navigator.vibrate)navigator.vibrate([300,120,300,120,600]);
+}
+
+window.acceptOrder=async function(orderId){
+ if(!currentUser)return;
+ const order=currentOrders.find(item=>item.id===orderId);
+ if(!order||order.assignedTo!==currentUser.uid)return;
+ if(String(order.deliveryAcceptanceStatus||"").toLowerCase()==="accepted")return;
+ try{
+  await updateDoc(doc(db,"orders",orderId),{deliveryAcceptanceStatus:"accepted",deliveryAcceptedBy:currentUser.uid,deliveryAcceptedAt:serverTimestamp(),updatedAt:serverTimestamp()});
+  showMessage("Order accepted. You can now call the customer.");
+ }catch(error){showMessage("Could not accept order: "+(error.code||"")+" "+error.message);}
+};
+
+window.rejectOrder=async function(orderId){
+ if(!currentUser)return;
+ const order=currentOrders.find(item=>item.id===orderId);
+ if(!order||order.assignedTo!==currentUser.uid)return;
+ try{
+  await updateDoc(doc(db,"orders",orderId),{deliveryAcceptanceStatus:"rejected",deliveryRejectedBy:currentUser.uid,deliveryRejectedAt:serverTimestamp(),updatedAt:serverTimestamp()});
+  showMessage("Order rejected. ZaikaBox Admin can reassign this order.");
+ }catch(error){showMessage("Could not reject order: "+(error.code||"")+" "+error.message);}
+};
 
 window.callCustomer=function(phone){
  window.location.href="tel:"+phone;
