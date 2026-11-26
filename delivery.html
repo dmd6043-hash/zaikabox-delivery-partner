@@ -182,11 +182,6 @@ button,#partnerNav button,.quick-tile{transition:transform .18s ease,background 
       <button id="offlineBtn" class="secondary" onclick="goOffline()" disabled>GO OFFLINE</button>
     </div>
     <p class="muted" id="gpsStatus" style="margin:0 2px 15px;padding:11px 13px;border-radius:12px">GPS permission will be requested when you go online.</p>
-    <div class="page-heading" style="font-size:19px">My Deliveries</div>
-    <div class="page-caption">Orders assigned to your account.</div>
-    <div id="orders">
-      <div class="card empty"><div>Loading assigned orders...</div></div>
-    </div>
   </div>
 
   <div id="earningsPage" class="partner-page">
@@ -235,6 +230,13 @@ button,#partnerNav button,.quick-tile{transition:transform .18s ease,background 
       <div class="info" style="margin-top:13px"><b>Vehicle type</b><div id="profileVehicle" class="muted">Not added</div></div>
       <div class="info" style="margin-top:13px"><b>City</b><div id="profileCity" class="muted">Not added</div></div>
       <div class="info" style="margin-top:13px"><b>Partner ID</b><div id="profileId" class="muted" style="overflow-wrap:anywhere">—</div></div>
+    </div>
+    <div class="card">
+      <div class="page-card-title">Order History</div>
+      <p class="muted">All orders assigned to your delivery partner account.</p>
+      <div id="orders">
+        <div class="card empty"><div>Loading order history...</div></div>
+      </div>
     </div>
     <div class="card">
       <div class="page-card-title">Payment &amp; Bank Details</div>
