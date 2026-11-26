@@ -142,6 +142,29 @@ footer{text-align:center;color:#747b8c;font-size:11px;padding:20px 0 8px;letter-
       <button class="secondary" onclick="showPage('home')">GO TO HOME</button>
     </div>
   </div>
+  <div id="profilePage" class="partner-page">
+    <div class="page-heading">My Profile</div>
+    <div class="page-caption">Your registered delivery partner details.</div>
+    <div class="card" style="text-align:center;padding:25px 18px">
+      <div id="profileAvatar" style="width:76px;height:76px;margin:0 auto 12px;border-radius:25px;display:grid;place-items:center;background:linear-gradient(145deg,#ffb36f,#ff7b24);color:#211108;font-size:30px;font-weight:950">Z</div>
+      <div id="profileName" style="font-size:21px;font-weight:900">Delivery Partner</div>
+      <div id="profileEmail" class="muted" style="margin-top:5px">—</div>
+      <div class="status" id="profileAccountStatus">ACTIVE ACCOUNT</div>
+    </div>
+    <div class="card">
+      <div class="page-card-title">Personal details</div>
+      <div class="info"><b>Mobile number</b><div id="profilePhone" class="muted">Not added</div></div>
+      <div class="info" style="margin-top:13px"><b>Vehicle type</b><div id="profileVehicle" class="muted">Not added</div></div>
+      <div class="info" style="margin-top:13px"><b>City</b><div id="profileCity" class="muted">Not added</div></div>
+      <div class="info" style="margin-top:13px"><b>Partner ID</b><div id="profileId" class="muted" style="overflow-wrap:anywhere">—</div></div>
+    </div>
+    <div class="card">
+      <div class="page-card-title">Account &amp; support</div>
+      <p class="muted">For changes to your registered details or account assistance, contact ZaikaBox support.</p>
+      <a href="https://wa.me/918319014718?text=Hello%20ZaikaBox%20Support%2C%20I%20need%20help%20with%20my%20delivery%20partner%20profile." target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;border-radius:14px;padding:14px 16px;margin-top:10px;background:linear-gradient(135deg,#ffad61,#ff812b);color:#211108;font-weight:850;font-size:14px">CONTACT SUPPORT</a>
+      <button class="secondary" onclick="logout()">LOG OUT</button>
+    </div>
+  </div>
 </section>
 
 <div id="message"></div>
@@ -149,6 +172,7 @@ footer{text-align:center;color:#747b8c;font-size:11px;padding:20px 0 8px;letter-
   <button class="active" data-page="home" onclick="showPage('home')"><span>⌂</span>Home</button>
   <button data-page="earnings" onclick="showPage('earnings')"><span>₹</span>Earnings</button>
   <button data-page="time" onclick="showPage('time')"><span>◷</span>My Time</button>
+  <button data-page="profile" onclick="showPage('profile')"><span>♙</span>Profile</button>
 </nav>
 <footer>ZaikaBox · Discover Great Local Food</footer>
 
@@ -193,6 +217,7 @@ const db=getFirestore(app);
 
 let unsubscribeOrders=null;
 let currentUser=null;
+let currentAccount={};
 let currentOrders=[];
 let availabilityWatchId=null;
 let isOnline=false;
@@ -296,6 +321,8 @@ onAuthStateChanged(auth,async user=>{
   }
 
   currentUser=user;
+  currentAccount=account;
+  renderProfile();
   loginSection.classList.add("hidden");
   dashboard.classList.remove("hidden");
   document.getElementById("partnerNav").classList.remove("hidden");
@@ -493,17 +520,38 @@ function loadOrders(uid){
 }
 
 function showPage(page){
- const allowed=["home","earnings","time"];
+ const allowed=["home","earnings","time","profile"];
  if(!allowed.includes(page))return;
  activePartnerPage=page;
  document.querySelectorAll(".partner-page").forEach(el=>el.classList.remove("active"));
- const target=document.getElementById(page==="home"?"homePage":page==="earnings"?"earningsPage":"timePage");
+ const pageIds={home:"homePage",earnings:"earningsPage",time:"timePage",profile:"profilePage"};
+ const target=document.getElementById(pageIds[page]);
  if(target)target.classList.add("active");
  document.querySelectorAll("#partnerNav button").forEach(btn=>btn.classList.toggle("active",btn.dataset.page===page));
  if(page==="earnings")renderEarnings();
  if(page==="time")updateOnlineTimer();
+ if(page==="profile")renderProfile();
 }
 window.showPage=showPage;
+
+function renderProfile(){
+ const account=currentAccount||{};
+ const name=account.name||account.fullName||account.ownerName||account.partnerName||account.displayName||"Delivery Partner";
+ const phone=account.phone||account.mobile||account.mobileNumber||account.phoneNumber||"Not added";
+ const vehicle=account.vehicleType||account.vehicle||account.vehicle_type||"Not added";
+ const city=account.city||account.addressCity||"Not added";
+ const status=account.active===true?"ACTIVE ACCOUNT":"ACCOUNT INACTIVE";
+ const put=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=String(value??"");};
+ put("profileName",name);
+ put("profileEmail",currentUser?.email||"");
+ put("profilePhone",phone);
+ put("profileVehicle",vehicle);
+ put("profileCity",city);
+ put("profileId",currentUser?.uid||"—");
+ put("profileAccountStatus",status);
+ const avatar=document.getElementById("profileAvatar");
+ if(avatar)avatar.textContent=String(name).trim().charAt(0).toUpperCase()||"Z";
+}
 
 function updateOnlineTimer(){
  const clock=document.getElementById("onlineDuration");
