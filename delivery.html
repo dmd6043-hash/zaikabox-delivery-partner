@@ -24,7 +24,7 @@ input{width:100%;padding:15px 16px;margin:7px 0;border:1px solid #383d4e;border-
 input:focus{border-color:var(--orange);box-shadow:0 0 0 3px #ff8a3520}
 button{border:0;border-radius:14px;padding:14px 16px;width:100%;background:linear-gradient(135deg,#ffad61,#ff812b);color:#211108;font-weight:850;font-size:14px;letter-spacing:.35px;margin-top:10px;cursor:pointer;box-shadow:0 6px 18px #ff8a3525;transition:transform .15s,filter .15s}
 button:active{transform:scale(.985)}button.secondary{background:#292e3d;color:#f5f6fb;border:1px solid #41475a;box-shadow:none}button:disabled{opacity:.48;cursor:not-allowed;box-shadow:none}
-.hidden{display:none!important}.muted{color:var(--muted);font-size:13px;line-height:1.55}
+.hidden{display:none!important}#partnerNav.hidden{display:none!important}.muted{color:var(--muted);font-size:13px;line-height:1.55}
 .status{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;background:#392719;color:#ffc18e;border:1px solid #8d522d55;border-radius:30px;font-size:11px;font-weight:850;letter-spacing:.7px;margin:5px 0 12px;text-transform:uppercase}
 #availabilityStatus{background:#342719}
 .order-title{font-size:17px;font-weight:850;margin-bottom:8px;letter-spacing:.2px}
@@ -444,7 +444,13 @@ onAuthStateChanged(auth,async user=>{
   checkAvailability(user.uid);
 
  }catch(error){
-  showMessage("Account check error: "+error.message);
+  console.error("Delivery account setup failed:",error);
+  loginSection.classList.remove("hidden");
+  dashboard.classList.add("hidden");
+  document.getElementById("partnerNav").classList.add("hidden");
+  document.getElementById("loginBtn").disabled=false;
+  document.getElementById("loginMessage").textContent="Login/account check failed: "+(error.code||"")+" "+error.message;
+  try{await signOut(auth);}catch(signOutError){console.warn("Could not clear failed session:",signOutError);}
  }
 });
 
