@@ -778,7 +778,7 @@ window.savePayoutDetails=async function(){
    ifscCode:ifsc,
    upiId:upi,
    qrDataUrl:payoutQrDataUrl,
-   verificationStatus:old.exists()?(old.data().verificationStatus||"Pending Verification"):"Pending Verification",
+   verificationStatus:"Pending Verification",
    updatedAt:serverTimestamp()
   };
   await setDoc(ref,payload,{merge:true});
