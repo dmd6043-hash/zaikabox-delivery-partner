@@ -145,6 +145,11 @@ footer{text-align:center;color:#747b8c;font-size:11px;padding:20px 0 8px;letter-
 </section>
 
 <div id="message"></div>
+<nav id="partnerNav" class="hidden" aria-label="Delivery partner navigation">
+  <button class="active" data-page="home" onclick="showPage('home')"><span>⌂</span>Home</button>
+  <button data-page="earnings" onclick="showPage('earnings')"><span>₹</span>Earnings</button>
+  <button data-page="time" onclick="showPage('time')"><span>◷</span>My Time</button>
+</nav>
 <footer>ZaikaBox · Discover Great Local Food</footer>
 
 <script type="module">
@@ -193,7 +198,10 @@ let availabilityWatchId=null;
 let isOnline=false;
 let availabilityBusy=false;
 let previousOrderStatuses={};
-let deliveryAlarmAudio=null;\nlet onlineSince=null;\nlet onlineTimeTicker=null;\nlet activePartnerPage="home";
+let deliveryAlarmAudio=null;
+let onlineSince=null;
+let onlineTimeTicker=null;
+let activePartnerPage="home";
 function unlockDeliveryAlarm(){try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;if(!deliveryAlarmAudio)deliveryAlarmAudio=new AC();if(deliveryAlarmAudio.state==="suspended")deliveryAlarmAudio.resume();}catch(e){}}
 document.addEventListener("pointerdown",unlockDeliveryAlarm,{passive:true});
 function playReadyBuzzerOnce(){try{unlockDeliveryAlarm();if(deliveryAlarmAudio&&deliveryAlarmAudio.state==="running"){const now=deliveryAlarmAudio.currentTime;const osc=deliveryAlarmAudio.createOscillator(),gain=deliveryAlarmAudio.createGain();osc.type="sawtooth";osc.frequency.setValueAtTime(430,now);osc.frequency.linearRampToValueAtTime(330,now+1.45);gain.gain.setValueAtTime(0.0001,now);gain.gain.linearRampToValueAtTime(0.32,now+0.06);gain.gain.setValueAtTime(0.32,now+1.25);gain.gain.exponentialRampToValueAtTime(0.0001,now+1.55);osc.connect(gain);gain.connect(deliveryAlarmAudio.destination);osc.start(now);osc.stop(now+1.58);}if(navigator.vibrate)navigator.vibrate([1200]);}catch(e){console.warn("Ready buzzer unavailable",e);}}
@@ -261,6 +269,7 @@ onAuthStateChanged(auth,async user=>{
   isOnline=false;
   loginSection.classList.remove("hidden");
   dashboard.classList.add("hidden");
+  document.getElementById("partnerNav").classList.add("hidden");
   document.getElementById("loginBtn").disabled=false;
   return;
  }
@@ -289,6 +298,8 @@ onAuthStateChanged(auth,async user=>{
   currentUser=user;
   loginSection.classList.add("hidden");
   dashboard.classList.remove("hidden");
+  document.getElementById("partnerNav").classList.remove("hidden");
+  showPage("home");
   document.getElementById("partnerEmail").textContent=user.email||"Delivery Partner";
 
   loadOrders(user.uid);
@@ -301,6 +312,9 @@ onAuthStateChanged(auth,async user=>{
 
 function setAvailabilityUI(online,message){
  isOnline=online;
+ const timeStatus=document.getElementById("timeStatus");
+ if(timeStatus)timeStatus.textContent=online?"ONLINE":"OFFLINE";
+ updateOnlineTimer();
  document.getElementById("availabilityStatus").textContent=online?"ONLINE":"OFFLINE";
  document.getElementById("onlineBtn").disabled=online||availabilityBusy;
  document.getElementById("offlineBtn").disabled=!online||availabilityBusy;
@@ -311,9 +325,11 @@ async function checkAvailability(uid){
  try{
   const snap=await getDoc(doc(db,"deliveryAvailability",uid));
   if(snap.exists() && snap.data().isOnline===true){
+   onlineSince=snap.data().onlineSince?.toMillis?.()||Date.now();
    setAvailabilityUI(true,"Account online status saved. GPS tracking active while this page is open.");
    startAvailabilityWatch();
   }else{
+   onlineSince=null;
    setAvailabilityUI(false,"You are offline. Select GO ONLINE to start receiving orders.");
   }
  }catch(error){
@@ -425,7 +441,8 @@ window.goOffline=async function(){
    isOnline:false,
    updatedAt:serverTimestamp()
   },{merge:true});
-  onlineSince=null;\n  setAvailabilityUI(false,"You are offline. GPS sharing stopped.");
+  onlineSince=null;
+  setAvailabilityUI(false,"You are offline. GPS sharing stopped.");
  }catch(error){
   showMessage("GO OFFLINE ERROR: "+(error.code||"")+" - "+error.message);
   startAvailabilityWatch();
@@ -462,7 +479,8 @@ function loadOrders(uid){
    return bTime-aTime;
   });
 
-  renderOrders();\n  renderEarnings();
+  renderOrders();
+  renderEarnings();
  },error=>{
   ordersBox.innerHTML=`
    <div class="card">
