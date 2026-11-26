@@ -126,6 +126,11 @@ button,#partnerNav button,.quick-tile{transition:transform .18s ease,background 
 @keyframes heroReveal{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @keyframes logoGlow{0%,100%{box-shadow:0 7px 22px rgba(255,138,53,.16)}50%{box-shadow:0 7px 27px rgba(255,138,53,.34)}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
+
+/* Keep all four bottom navigation items on one horizontal row */
+#partnerNav{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;grid-auto-flow:column!important;align-items:stretch;flex-wrap:nowrap;width:calc(100% - 18px);max-width:720px;gap:3px;padding:7px 4px calc(7px + env(safe-area-inset-bottom))}
+#partnerNav button{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;width:100%;white-space:nowrap;padding:8px 2px;font-size:clamp(9px,2.8vw,11px);line-height:1.2}
+#partnerNav button span{display:block;margin:0 0 3px;font-size:18px;line-height:1}
 </style>
 </head>
 
