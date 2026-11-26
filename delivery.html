@@ -328,6 +328,7 @@ let availabilityBusy=false;
 let previousOrderStatuses={};
 let ordersFirstSnapshot=true;
 let notifiedOrderIds=new Set();
+let previousOrderAssignments={};
 let deliveryAlarmAudio=null;
 let onlineSince=null;
 let onlineTimeTicker=null;
@@ -397,6 +398,7 @@ onAuthStateChanged(auth,async user=>{
    currentUser=null;
    ordersFirstSnapshot=true;
    previousOrderStatuses={};
+   previousOrderAssignments={};
    notifiedOrderIds.clear();
   stopAvailabilityWatch();
   isOnline=false;
@@ -540,6 +542,9 @@ function stopAvailabilityWatch(){
 
 window.goOnline=async function(){
  if(!currentUser||availabilityBusy)return;
+ if("Notification" in window && Notification.permission==="default"){
+  try{await Notification.requestPermission();}catch(permissionError){console.warn("Notification permission unavailable",permissionError);}
+ }
  availabilityBusy=true;
  setAvailabilityUI(false,"Checking GPS permission and current location...");
  try{
@@ -608,8 +613,12 @@ function loadOrders(uid){
    currentOrders.forEach(order=>{
     const status=String(order.status||"").toLowerCase();
     const previous=previousOrderStatuses[order.id];
-    if(!isInitial && previous && previous!==status && order.assignedTo===uid && !["delivered","cancelled"].includes(status) && !notifiedOrderIds.has(order.id))notifyNewOrder(order);
+    const previousAssignee=previousOrderAssignments[order.id];
+    const newlyAssigned=!isInitial && order.assignedTo===uid && previousAssignee!==uid;
+    const becameReady=!isInitial && previous && previous!==status && status==="ready";
+    if((newlyAssigned||becameReady) && !["delivered","cancelled"].includes(status) && !notifiedOrderIds.has(order.id))notifyNewOrder(order);
     previousOrderStatuses[order.id]=status;
+    previousOrderAssignments[order.id]=order.assignedTo||null;
    });
    ordersFirstSnapshot=false;
    currentOrders.sort((a,b)=>(b.createdAt?.toMillis?.()||0)-(a.createdAt?.toMillis?.()||0));
