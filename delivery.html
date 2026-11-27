@@ -149,8 +149,8 @@ button,#partnerNav button,.quick-tile{transition:transform .18s ease,background 
   <p class="muted">Login using your registered delivery account.</p>
   <input id="email" type="email" placeholder="Email address" autocomplete="username">
   <input id="password" type="password" placeholder="Password" autocomplete="current-password">
-  <button id="loginBtn" onclick="login()">Login</button>
-  <div id="loginMessage"></div>
+  <button id="loginBtn" type="button" onclick="window.__zbLoginTap()">Login</button>
+  <div id="loginMessage" role="status" aria-live="polite" style="min-height:22px;margin-top:10px;color:#ffb16f;font-size:13px"></div>
 </section>
 
 <section id="dashboard" class="hidden">
@@ -279,6 +279,25 @@ button,#partnerNav button,.quick-tile{transition:transform .18s ease,background 
 </nav>
 <footer>ZaikaBox · Discover Great Local Food</footer>
 
+<script>
+window.__zbLoginTap=function(){
+ const message=document.getElementById("loginMessage");
+ const button=document.getElementById("loginBtn");
+ if(typeof window.login!=="function"){
+  message.textContent="App script load nahi hua. Internet check karke page refresh karein.";
+  return;
+ }
+ window.login();
+};
+window.addEventListener("error",function(event){
+ const message=document.getElementById("loginMessage");
+ if(message && !message.textContent)message.textContent="App loading error: "+(event.message||"JavaScript error");
+});
+window.addEventListener("unhandledrejection",function(event){
+ const message=document.getElementById("loginMessage");
+ if(message)message.textContent="App error: "+(event.reason?.message||String(event.reason||"Please try again."));
+});
+</script>
 <script type="module">
 import {initializeApp}
 from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
