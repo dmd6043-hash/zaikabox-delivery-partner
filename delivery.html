@@ -889,10 +889,13 @@ function renderActiveOrders(){
   const total=order.totalAmount??order.total??order.grandTotal??"";
   const phoneLink=String(phone).replace(/[^\\d+]/g,"");
   const isOut=status.toLowerCase()==="out for delivery";
-  const isReady=status.toLowerCase()==="ready";
+  const isReady=status==="Ready";
+  const canRespond=!accepted && isReady && (!("deliveryAcceptanceStatus" in order) || order.deliveryAcceptanceStatus==="pending");
   let actionHtml="";
-  if(!accepted){
+  if(canRespond){
    actionHtml='<button onclick="window.acceptOrder(\''+escapeHTML(order.id)+'\')">✓ ACCEPT</button><button class="secondary" onclick="window.rejectOrder(\''+escapeHTML(order.id)+'\')">✕ REJECT</button>';
+  }else if(!accepted){
+   actionHtml='<button disabled>WAITING FOR RESTAURANT</button>';
   }else{
    if(phoneLink)actionHtml+='<button class="secondary" onclick="callCustomer(\''+escapeHTML(phoneLink)+'\')">📞 CALL CUSTOMER</button>';
    actionHtml+='<button class="secondary" onclick="openMap(\''+encodeURIComponent(address)+'\')">📍 OPEN MAP</button>';
