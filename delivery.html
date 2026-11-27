@@ -892,7 +892,7 @@ function renderActiveOrders(){
   const isReady=status.toLowerCase()==="ready";
   let actionHtml="";
   if(!accepted){
-   actionHtml='<button onclick="acceptOrder(\''+escapeHTML(order.id)+'\')">✓ ACCEPT</button><button class="secondary" onclick="rejectOrder(\''+escapeHTML(order.id)+'\')">✕ REJECT</button>';
+   actionHtml='<button onclick="window.acceptOrder(\''+escapeHTML(order.id)+'\')">✓ ACCEPT</button><button class="secondary" onclick="window.rejectOrder(\''+escapeHTML(order.id)+'\')">✕ REJECT</button>';
   }else{
    if(phoneLink)actionHtml+='<button class="secondary" onclick="callCustomer(\''+escapeHTML(phoneLink)+'\')">📞 CALL CUSTOMER</button>';
    actionHtml+='<button class="secondary" onclick="openMap(\''+encodeURIComponent(address)+'\')">📍 OPEN MAP</button>';
@@ -930,10 +930,12 @@ function notifyNewOrder(order){
 }
 
 window.acceptOrder=async function(orderId){
- if(!currentUser)return;
+ if(!currentUser){showMessage("Please log in again before accepting this order.");return;}
  const order=currentOrders.find(item=>item.id===orderId);
- if(!order||order.assignedTo!==currentUser.uid)return;
- if(String(order.deliveryAcceptanceStatus||"").toLowerCase()==="accepted")return;
+ if(!order){showMessage("Order not found. Refresh the app and try again.");return;}
+ if(order.assignedTo!==currentUser.uid){showMessage("This order is not assigned to your account.");return;}
+ if(String(order.deliveryAcceptanceStatus||"").toLowerCase()==="accepted"){showMessage("This order is already accepted.");return;}
+ showMessage("Accepting order...");
  try{
   await updateDoc(doc(db,"orders",orderId),{deliveryAcceptanceStatus:"accepted",deliveryAcceptedBy:currentUser.uid,deliveryAcceptedAt:serverTimestamp(),updatedAt:serverTimestamp()});
   showMessage("Order accepted. You can now call the customer.");
@@ -941,9 +943,11 @@ window.acceptOrder=async function(orderId){
 };
 
 window.rejectOrder=async function(orderId){
- if(!currentUser)return;
+ if(!currentUser){showMessage("Please log in again before rejecting this order.");return;}
  const order=currentOrders.find(item=>item.id===orderId);
- if(!order||order.assignedTo!==currentUser.uid)return;
+ if(!order){showMessage("Order not found. Refresh the app and try again.");return;}
+ if(order.assignedTo!==currentUser.uid){showMessage("This order is not assigned to your account.");return;}
+ showMessage("Rejecting order...");
  try{
   await updateDoc(doc(db,"orders",orderId),{deliveryAcceptanceStatus:"rejected",deliveryRejectedBy:currentUser.uid,deliveryRejectedAt:serverTimestamp(),updatedAt:serverTimestamp()});
   showMessage("Order rejected. ZaikaBox Admin can reassign this order.");
