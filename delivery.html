@@ -887,12 +887,22 @@ function renderActiveOrders(){
   const phone=order.phone||order.customerPhone||"";
   const address=order.deliveryAddress||order.address||order.customerAddress||"Address not available";
   const total=order.totalAmount??order.total??order.grandTotal??"";
-  const phoneLink=String(phone).replace(/[^\d+]/g,"");
+  const phoneLink=String(phone).replace(/[^\\d+]/g,"");
   const isOut=status.toLowerCase()==="out for delivery";
   const isReady=status.toLowerCase()==="ready";
-  return `<div class="card"><div class="toprow"><div class="order-title">Order #${escapeHTML(order.id.slice(-6).toUpperCase())}</div><span class="status">${escapeHTML(accepted?"ACCEPTED · "+status:"NEW ORDER · "+status)}</span></div>
-   <div class="info"><b>Customer:</b> ${escapeHTML(name)}<br><b>Address:</b> ${escapeHTML(address)}<br>${total!==""?`<b>Order Total:</b> ₹${escapeHTML(total)}<br>`:""}${order.paymentMethod?`<b>Payment:</b> ${escapeHTML(order.paymentMethod)}`:""}</div>
-   <div class="order-actions">${!accepted?`<button onclick="acceptOrder('${order.id}')">✓ ACCEPT</button><button class="secondary" onclick="rejectOrder('${order.id}')">✕ REJECT</button>`:`${phoneLink?`<button class="secondary" onclick="callCustomer('${escapeHTML(phoneLink)}')">📞 CALL CUSTOMER</button>`:""}<button class="secondary" onclick="openMap('${encodeURIComponent(address)}')">📍 OPEN MAP</button>${isOut?`<button onclick="updateStatus('${order.id}','Delivered')">MARK DELIVERED</button>`:isReady?`<button onclick="updateStatus('${order.id}','Out for Delivery')">START DELIVERY</button>`:`<button disabled>WAITING FOR RESTAURANT</button>`}</div></div>`;
+  let actionHtml="";
+  if(!accepted){
+   actionHtml='<button onclick="acceptOrder(\''+escapeHTML(order.id)+'\')">✓ ACCEPT</button><button class="secondary" onclick="rejectOrder(\''+escapeHTML(order.id)+'\')">✕ REJECT</button>';
+  }else{
+   if(phoneLink)actionHtml+='<button class="secondary" onclick="callCustomer(\''+escapeHTML(phoneLink)+'\')">📞 CALL CUSTOMER</button>';
+   actionHtml+='<button class="secondary" onclick="openMap(\''+encodeURIComponent(address)+'\')">📍 OPEN MAP</button>';
+   if(isOut)actionHtml+='<button onclick="updateStatus(\''+escapeHTML(order.id)+'\',\'Delivered\')">MARK DELIVERED</button>';
+   else if(isReady)actionHtml+='<button onclick="updateStatus(\''+escapeHTML(order.id)+'\',\'Out for Delivery\')">START DELIVERY</button>';
+   else actionHtml+='<button disabled>WAITING FOR RESTAURANT</button>';
+  }
+  const totalHtml=total!==""?'<br><b>Order Total:</b> ₹'+escapeHTML(total):"";
+  const paymentHtml=order.paymentMethod?'<br><b>Payment:</b> '+escapeHTML(order.paymentMethod):"";
+  return '<div class="card"><div class="toprow"><div class="order-title">Order #'+escapeHTML(order.id.slice(-6).toUpperCase())+'</div><span class="status">'+escapeHTML(accepted?"ACCEPTED · "+status:"NEW ORDER · "+status)+'</span></div><div class="info"><b>Customer:</b> '+escapeHTML(name)+'<br><b>Address:</b> '+escapeHTML(address)+totalHtml+paymentHtml+'</div><div class="order-actions">'+actionHtml+'</div></div>';
  }).join("");
 }
 
