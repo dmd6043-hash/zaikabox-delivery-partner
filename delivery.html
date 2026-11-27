@@ -94,6 +94,7 @@ button.secondary{background:#262019;color:#fffaf5;border:1px solid rgba(255,255,
 .home-hero .status{background:rgba(255,138,53,.16);color:#ffbd91;border-color:rgba(255,138,53,.3)}
 .home-hero button{background:linear-gradient(135deg,#ff9b4a,#ed681f);color:#fff;font-size:15px;min-height:52px}
 .home-hero button.secondary{background:#302219;color:#ffbd91;border:1px solid rgba(255,138,53,.25)}
+ .offline-welcome{display:flex;align-items:center;gap:13px;margin:15px 0 13px;padding:13px 14px;border:1px solid rgba(255,177,111,.24);border-radius:16px;background:linear-gradient(110deg,rgba(255,166,96,.16),rgba(255,255,255,.035));box-shadow:inset 0 1px rgba(255,255,255,.06)}.offline-welcome .offline-icon{width:44px;height:44px;flex:0 0 44px;display:grid;place-items:center;border-radius:14px;background:linear-gradient(145deg,#ffb16f,#e56a27);color:#28150b;font-size:23px;box-shadow:0 6px 18px rgba(255,138,53,.2)}.offline-welcome b{display:block;color:#fff4e9;font-size:13px;letter-spacing:.2px}.offline-welcome span{display:block;color:#d8bca7;font-size:11px;line-height:1.45;margin-top:4px}
 .home-top-actions a{display:inline-flex;align-items:center;justify-content:center;padding:9px 13px;border-radius:22px;background:#262019;color:#fffaf5;border:1px solid rgba(255,255,255,.12);text-decoration:none;font-size:12px;font-weight:800}
 .home-top-actions a.sos{color:#ff7d76}
 .quick-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:13px 0 18px}
@@ -178,6 +179,7 @@ button,#partnerNav button,.quick-tile{transition:transform .18s ease,background 
       </div>
       <h2 id="homeHeroTitle">Ready to earn today?</h2>
       <p class="muted" id="homeHeroCaption">Go online when you are ready to receive delivery orders.</p>
+      <div id="offlineWelcome" class="offline-welcome"><div class="offline-icon">☾</div><div><b>You’re currently offline</b><span>Relax for a moment. Go online whenever you’re ready to receive delivery orders and start earning.</span></div></div>
       <button id="onlineBtn" onclick="goOnline()">GO ONLINE →</button>
       <button id="offlineBtn" class="secondary" onclick="goOffline()" disabled>GO OFFLINE</button>
     </div>
@@ -479,6 +481,8 @@ function setAvailabilityUI(online,message){
  if(timeStatus)timeStatus.textContent=online?"ONLINE":"OFFLINE";
  updateOnlineTimer();
  document.getElementById("availabilityStatus").textContent=online?"ONLINE":"OFFLINE";
+ const offlineWelcome=document.getElementById("offlineWelcome");
+ if(offlineWelcome)offlineWelcome.classList.toggle("hidden",online);
  document.getElementById("onlineBtn").disabled=online||availabilityBusy;
  document.getElementById("offlineBtn").disabled=!online||availabilityBusy;
  if(message)document.getElementById("gpsStatus").textContent=message;
