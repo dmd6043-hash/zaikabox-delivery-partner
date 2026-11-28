@@ -1,4 +1,4 @@
-const CACHE_NAME = "zaikabox-delivery-v10-icon-fit";
+const CACHE_NAME = "zaikabox-delivery-v11-head-fix";
 const APP_SHELL = [
   "./delivery.html",
   "./manifest.webmanifest",
