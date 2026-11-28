@@ -1071,7 +1071,7 @@ window.updateStatus=async function(orderId,newStatus){
 <script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js", { scope: "./" })
+    navigator.serviceWorker.register("./sw.js", { scope: "./", updateViaCache: "none" })
       .catch(error => console.error("ZaikaBox service worker registration failed:", error));
   });
 }
