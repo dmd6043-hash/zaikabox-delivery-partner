@@ -1,8 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-<defs><radialGradient id="bg" cx="50%" cy="45%" r="75%"><stop offset="0" stop-color="#1d1915"/><stop offset="1" stop-color="#090807"/></radialGradient><linearGradient id="o" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffad42"/><stop offset="1" stop-color="#f47712"/></linearGradient></defs>
-<rect width="512" height="512" rx="78" fill="url(#bg)"/>
-<rect x="12" y="12" width="488" height="488" rx="68" fill="none" stroke="url(#o)" stroke-width="10"/>
-<text x="256" y="236" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="72" font-weight="700" letter-spacing="-3"><tspan fill="#fff">Zaika</tspan><tspan fill="#ff8500">Delivery</tspan></text>
-<path d="M128 274H384" stroke="#ff8500" stroke-width="4" stroke-linecap="round" opacity=".8"/>
-<text x="256" y="330" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="43" font-weight="600" letter-spacing="3" fill="#fff3e8">PARTNER</text>
+<defs>
+ <radialGradient id="bg" cx="50%" cy="42%" r="78%"><stop offset="0" stop-color="#211a14"/><stop offset="1" stop-color="#090807"/></radialGradient>
+ <linearGradient id="orange" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffad42"/><stop offset="1" stop-color="#f47712"/></linearGradient>
+</defs>
+<rect width="512" height="512" rx="104" fill="url(#bg)"/>
+<rect x="18" y="18" width="476" height="476" rx="88" fill="none" stroke="url(#orange)" stroke-width="9"/>
+<text x="256" y="215" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="92" font-weight="700" letter-spacing="-3" fill="#fff">Zaika</text>
+<text x="256" y="302" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="70" font-weight="700" letter-spacing="-2" fill="#ff8500">Delivery</text>
+<path d="M142 333H370" stroke="#ff8500" stroke-width="4" stroke-linecap="round" opacity=".9"/>
+<text x="256" y="390" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="42" font-weight="600" letter-spacing="4" fill="#fff3e8">PARTNER</text>
 </svg>
