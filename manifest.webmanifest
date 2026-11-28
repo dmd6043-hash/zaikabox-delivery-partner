@@ -1,9 +1,9 @@
 {
-  "id": "./delivery.html?app=zaikadelivery-partner-v3",
+  "id": "./delivery.html",
   "name": "ZaikaDelivery Partner",
   "short_name": "ZaikaDelivery",
   "description": "ZaikaDelivery Partner App",
-  "start_url": "./delivery.html?app=zaikadelivery-partner-v3",
+  "start_url": "./delivery.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
