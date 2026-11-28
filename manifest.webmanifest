@@ -1,10 +1,10 @@
 {
-  "id": "./delivery.html",
+  "id": "https://dmd6043-hash.github.io/zaikabox-delivery-partner/",
   "name": "ZaikaDelivery Partner",
   "short_name": "ZaikaDelivery",
   "description": "ZaikaDelivery Partner App",
-  "start_url": "./delivery.html",
-  "scope": "./",
+  "start_url": "https://dmd6043-hash.github.io/zaikabox-delivery-partner/delivery.html",
+  "scope": "https://dmd6043-hash.github.io/zaikabox-delivery-partner/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#100d0a",
