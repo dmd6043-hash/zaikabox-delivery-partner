@@ -1,9 +1,9 @@
-const CACHE_NAME = "zaikabox-delivery-v8";
+const CACHE_NAME = "zaikabox-delivery-v9-wordmark";
 const APP_SHELL = [
   "./delivery.html",
   "./manifest.webmanifest",
-  "./icon-192.png",
-  "./icon-512.png"
+  "./zaikadelivery-partner-icon.svg",
+  "./zaikadelivery-partner-icon.svg"
 ];
 
 self.addEventListener("install", event => {
